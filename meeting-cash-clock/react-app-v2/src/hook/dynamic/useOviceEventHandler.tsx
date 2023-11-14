@@ -128,6 +128,7 @@ export const useOviceRecievedEventHandler = () => {
 
   const handleSelfEvents = useCallback(
     (event: OviceEvent) => {
+      console.log("received ", event)
       if (event.type === "ovice_participant_joined") {
         if (event.payload.isHost) {
           setMeeting({
