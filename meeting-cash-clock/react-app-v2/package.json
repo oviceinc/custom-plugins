@@ -2,7 +2,7 @@
   "name": "react-app-v2",
   "version": "0.1.0",
   "private": true,
-  "homepage": "http://ovice.github.io/meeting-cache-clock",
+  "homepage": "http://oviceinc.github.io/meeting-cash-clock",
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
