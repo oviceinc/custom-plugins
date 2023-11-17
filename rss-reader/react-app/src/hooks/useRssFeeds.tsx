@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Parser from "rss-parser";
 
-const CORS_PROXY = "https://cors-anywhere.herokuapp.com/";
+const CORS_PROXY = "https://corsanywhere-1990.onrender.com/";
 
 export type RssFeedItem = {
   author: string;
