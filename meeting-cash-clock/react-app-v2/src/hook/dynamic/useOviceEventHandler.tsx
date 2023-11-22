@@ -45,12 +45,14 @@ export const useOviceRecievedEventHandler = () => {
           (part) => part.id === payload.id
         );
         if (index === -1) {
+          const timeSpent =
+            oldMeeting.startTime && oldMeeting.status !== "ended"
+              ? Date.now() - oldMeeting.startTime
+              : 0;
           oldMeeting.participants.push({
             id: payload.id,
             name: payload.name,
-            timeSpent: oldMeeting.startTime
-              ? Date.now() - oldMeeting.startTime
-              : 0,
+            timeSpent,
             totalCost: 0,
             left: false,
           });
@@ -103,16 +105,12 @@ export const useOviceRecievedEventHandler = () => {
           if (index > -1) {
             const part = { ...oldMeeting.participants[index] };
             let durration = 0;
-            console.log("handleOtherParticipantsEvents part", part);
-            console.log("handleOtherParticipantsEvents oldMeeting", oldMeeting);
-
             if (oldMeeting.elapsedTime) {
               durration = oldMeeting.elapsedTime - (part.timeSpent ?? 0);
             } else if (oldMeeting.startTime) {
               durration = Date.now() - oldMeeting.startTime;
               durration -= part.timeSpent ?? 0;
             }
-            console.log(durration / 1000, "s");
             part.timeSpent = durration;
             part.left = true;
             oldMeeting.participants[index] = part;
@@ -128,7 +126,6 @@ export const useOviceRecievedEventHandler = () => {
 
   const handleSelfEvents = useCallback(
     (event: OviceEvent) => {
-      console.log("received ", event)
       if (event.type === "ovice_participant_joined") {
         if (event.payload.isHost) {
           setMeeting({
@@ -137,6 +134,7 @@ export const useOviceRecievedEventHandler = () => {
             status: "ready",
             participants: [],
           });
+          addParticipant(event.payload);
         }
         setCurrentUser(event.payload);
       } else if (
@@ -147,7 +145,7 @@ export const useOviceRecievedEventHandler = () => {
         setMeeting(undefined);
       }
     },
-    [setCurrentUser, setMeeting]
+    [addParticipant, setCurrentUser, setMeeting]
   );
 
   const handleMessageEvents = useCallback(

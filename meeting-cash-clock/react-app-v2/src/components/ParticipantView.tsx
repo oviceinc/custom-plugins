@@ -19,7 +19,7 @@ export const ParticipantView = ({
       justifyContent={"center"}
     >
       <Typography variant="body2">{name}</Typography>
-      {totalTime && (
+      {totalTime !== undefined && (
         <Typography variant="body2">{`| ${timeFormat(totalTime)}`}</Typography>
       )}
       {cost !== undefined && (

@@ -18,6 +18,15 @@ export const useMeetingTimerAction = () => {
         const meeting = { ...prev };
         meeting.startTime = startTime;
         meeting.status = "started";
+        meeting.participants = meeting.participants
+        .filter((part) => !part.left)
+        .map((participant) => {
+          return {
+            ...participant,
+            timeSpent: 0,
+            totalCost: 0,
+          };
+        });
         postMessageMeetingDetails(meeting, currentUser);
         return meeting;
       });
