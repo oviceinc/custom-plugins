@@ -1,0 +1,29 @@
+{
+  "files": {
+    "main.css": "/custom-plugins/soundtrack/static/css/main.37a7f670.css",
+    "main.js": "/custom-plugins/soundtrack/static/js/main.8dca073d.js",
+    "static/js/787.fe2b4fda.chunk.js": "/custom-plugins/soundtrack/static/js/787.fe2b4fda.chunk.js",
+    "static/media/roboto-latin-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-latin-500-normal.f25d774ecfe0996f8eb5.woff2",
+    "static/media/roboto-cyrillic-ext-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-cyrillic-ext-500-normal.62ced72e5832f02c2796.woff2",
+    "static/media/roboto-latin-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-latin-500-normal.1f075502d0094a398e21.woff",
+    "static/media/roboto-cyrillic-ext-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-cyrillic-ext-500-normal.268f264f58eba5c07c88.woff",
+    "static/media/roboto-latin-ext-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-latin-ext-500-normal.9165081d10e1ba601384.woff2",
+    "static/media/roboto-latin-ext-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-latin-ext-500-normal.252057e589a0379208ed.woff",
+    "static/media/roboto-cyrillic-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-cyrillic-500-normal.cad7d3d9cb265e334e58.woff2",
+    "static/media/roboto-cyrillic-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-cyrillic-500-normal.965aebef74db72eaf236.woff",
+    "static/media/roboto-greek-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-greek-500-normal.9ac81fefbe6c319ea40b.woff2",
+    "static/media/roboto-greek-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-greek-500-normal.1a05a4887ccb810cb4dd.woff",
+    "static/media/roboto-vietnamese-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-vietnamese-500-normal.d8642a3d1d4ef6179644.woff2",
+    "static/media/roboto-vietnamese-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-vietnamese-500-normal.657896dad292ee9a0a0a.woff",
+    "static/media/roboto-greek-ext-500-normal.woff2": "/custom-plugins/soundtrack/static/media/roboto-greek-ext-500-normal.6fb9cffb1d3e72bf9293.woff2",
+    "static/media/roboto-greek-ext-500-normal.woff": "/custom-plugins/soundtrack/static/media/roboto-greek-ext-500-normal.eaa367bbd0b333a7f80b.woff",
+    "index.html": "/custom-plugins/soundtrack/index.html",
+    "main.37a7f670.css.map": "/custom-plugins/soundtrack/static/css/main.37a7f670.css.map",
+    "main.8dca073d.js.map": "/custom-plugins/soundtrack/static/js/main.8dca073d.js.map",
+    "787.fe2b4fda.chunk.js.map": "/custom-plugins/soundtrack/static/js/787.fe2b4fda.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.37a7f670.css",
+    "static/js/main.8dca073d.js"
+  ]
+}
