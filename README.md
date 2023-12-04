@@ -19,46 +19,46 @@
 
 ### **Events Related to Participant**
 
-| event                                                                                                         |
-| :------------------------------------------------------------------------------------------------------------ |
-| [`ovice_participant_subscribed`](./docs/technical_details_for_developers.md#ovice_participant_subscribed)     |
-| [`ovice_participant_unsubscribed`](./docs/technical_details_for_developers.md#ovice_participant_unsubscribed) |
-| [`ovice_participant_joined`](./docs/technical_details_for_developers.md#ovice_participant_joined)             |
-| [`ovice_participant_left`](./docs/technical_details_for_developers.md#ovice_participant_left)                 |
+| event                                                                                                         | sender       |
+| :------------------------------------------------------------------------------------------------------------ | :----------- |
+| [`ovice_participant_subscribed`](./docs/technical_details_for_developers.md#ovice_participant_subscribed)     | ovice Domain |
+| [`ovice_participant_unsubscribed`](./docs/technical_details_for_developers.md#ovice_participant_unsubscribed) | ovice Domain |
+| [`ovice_participant_joined`](./docs/technical_details_for_developers.md#ovice_participant_joined)             | ovice Domain |
+| [`ovice_participant_left`](./docs/technical_details_for_developers.md#ovice_participant_left)                 | ovice Domain |
 
 ### **Events Related to other Participant**
 
-| event                                                                                                                     |
-| :------------------------------------------------------------------------------------------------------------------------ |
-| [`ovice_other_participant_subscribed`](./docs/technical_details_for_developers.md#ovice_other_participant_subscribed)     |
-| [`ovice_other_participant_unsubscribed`](./docs/technical_details_for_developers.md#ovice_other_participant_unsubscribed) |
-| [`ovice_other_participant_joined`](./docs/technical_details_for_developers.md#ovice_other_participant_joined)             |
-| [`ovice_other_participant_left`](./docs/technical_details_for_developers.md#ovice_other_participant_left)                 |
+| event                                                                                                                     | sender       |
+| :------------------------------------------------------------------------------------------------------------------------ | :----------- |
+| [`ovice_other_participant_subscribed`](./docs/technical_details_for_developers.md#ovice_other_participant_subscribed)     | ovice Domain |
+| [`ovice_other_participant_unsubscribed`](./docs/technical_details_for_developers.md#ovice_other_participant_unsubscribed) | ovice Domain |
+| [`ovice_other_participant_joined`](./docs/technical_details_for_developers.md#ovice_other_participant_joined)             | ovice Domain |
+| [`ovice_other_participant_left`](./docs/technical_details_for_developers.md#ovice_other_participant_left)                 | ovice Domain |
 
 ## **Events for Participant Information Retrieval**
 
-| event                                                                                         |
-| :-------------------------------------------------------------------------------------------- |
-| [`ovice_get_participants`](./docs/technical_details_for_developers.md#ovice_get_participants) |
-| [`ovice_participants`](./docs/technical_details_for_developers.md#ovice_participants)         |
+| event                                                                                         | sender        |
+| :-------------------------------------------------------------------------------------------- | :------------ |
+| [`ovice_get_participants`](./docs/technical_details_for_developers.md#ovice_get_participants) | Client Domain |
+| [`ovice_participants`](./docs/technical_details_for_developers.md#ovice_participants)         | ovice Domain  |
 
 ## Real-time Communication Events
 
-| event                                                                                     |
-| :---------------------------------------------------------------------------------------- |
-| [`ovice_emit_to_others`](./docs/technical_details_for_developers.md#ovice_emit_to_others) |
-| [`ovice_emit_to`](./docs/technical_details_for_developers.md#ovice_emit_to)               |
+| event                                                                                     | sender        |
+| :---------------------------------------------------------------------------------------- | :------------ |
+| [`ovice_emit_to_others`](./docs/technical_details_for_developers.md#ovice_emit_to_others) | Client Domain |
+| [`ovice_emit_to`](./docs/technical_details_for_developers.md#ovice_emit_to)               | Client Domain |
 
 ## Reflection Event
 
-| event                                                                                   |
-| :-------------------------------------------------------------------------------------- |
-| [`ovice_event_message`](./docs/technical_details_for_developers.md#ovice_event_message) |
+| event                                                                                   | sender       |
+| :-------------------------------------------------------------------------------------- | :----------- |
+| [`ovice_event_message`](./docs/technical_details_for_developers.md#ovice_event_message) | ovice Domain |
 
 ## Initial connection event (in preparation)
 
-| event                                                                                       |
-| :------------------------------------------------------------------------------------------ |
-| [`ovice_ready`](./docs/technical_details_for_developers.md#ovice_ready)                     |
-| [`ovice_confirmation`](./docs/technical_details_for_developers.md#ovice_confirmation)       |
-| [`ovice_ready_confirmed`](./docs/technical_details_for_developers.md#ovice_ready_confirmed) |
+| event                                                                                       | sender        |
+| :------------------------------------------------------------------------------------------ | :------------ |
+| [`ovice_ready`](./docs/technical_details_for_developers.md#ovice_ready)                     | Client Domain |
+| [`ovice_confirmation`](./docs/technical_details_for_developers.md#ovice_confirmation)       | ovice Domain  |
+| [`ovice_ready_confirmed`](./docs/technical_details_for_developers.md#ovice_ready_confirmed) | Client Domain |
