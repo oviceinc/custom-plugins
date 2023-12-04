@@ -1,5 +1,11 @@
 # Custom Plugins
 
+## **Overview**
+
+This repository is for sharing samples for developing Custom Plugins for ovice.
+
+The communication system facilitates real-time interaction between two domains using iframe postMessage. Events are exchanged to manage participants, gather participant information, and enable custom communication between users. This system allows seamless integration for developers to enhance user experiences across different domains.
+
 ## **Examples**
 
 | name                                       | description |
@@ -35,27 +41,27 @@
 | [`ovice_other_participant_joined`](./docs/technical_details_for_developers.md#ovice_other_participant_joined)             | ovice Domain |
 | [`ovice_other_participant_left`](./docs/technical_details_for_developers.md#ovice_other_participant_left)                 | ovice Domain |
 
-## **Events for Participant Information Retrieval**
+### **Events for Participant Information Retrieval**
 
 | event                                                                                         | sender        |
 | :-------------------------------------------------------------------------------------------- | :------------ |
 | [`ovice_get_participants`](./docs/technical_details_for_developers.md#ovice_get_participants) | Client Domain |
 | [`ovice_participants`](./docs/technical_details_for_developers.md#ovice_participants)         | ovice Domain  |
 
-## Real-time Communication Events
+### Real-time Communication Events
 
 | event                                                                                     | sender        |
 | :---------------------------------------------------------------------------------------- | :------------ |
 | [`ovice_emit_to_others`](./docs/technical_details_for_developers.md#ovice_emit_to_others) | Client Domain |
 | [`ovice_emit_to`](./docs/technical_details_for_developers.md#ovice_emit_to)               | Client Domain |
 
-## Reflection Event
+### Reflection Event
 
 | event                                                                                   | sender       |
 | :-------------------------------------------------------------------------------------- | :----------- |
 | [`ovice_event_message`](./docs/technical_details_for_developers.md#ovice_event_message) | ovice Domain |
 
-## Initial connection event (in preparation)
+### Initial connection event (in preparation)
 
 | event                                                                                       | sender        |
 | :------------------------------------------------------------------------------------------ | :------------ |
