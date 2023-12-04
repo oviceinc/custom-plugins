@@ -20,22 +20,22 @@ The communication system facilitates real-time interaction between two domains u
 
 - **"subscribed":** User is within the range of the object but not linked.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/55e5ed76-7495-4502-93db-ab8d5f509ad1
+    https://github.com/oviceinc/custom-plugins/assets/15701307/55e5ed76-7495-4502-93db-ab8d5f509ad1
 
 
 - **"joined":** User is linked to the object.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/f7c9ea47-356f-4917-8563-0425441ec2c0
+    https://github.com/oviceinc/custom-plugins/assets/15701307/f7c9ea47-356f-4917-8563-0425441ec2c0
 
 
 - **"left":** User was linked but left the object.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/e35fd892-ac83-4a41-9560-fe4c0edf50a4
+    https://github.com/oviceinc/custom-plugins/assets/15701307/e35fd892-ac83-4a41-9560-fe4c0edf50a4
 
 
 - **"unsubscribed":** User was linked or within the range of the object but moved out of range.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-aeb1-1aaafe070732
+    https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-aeb1-1aaafe070732
 
 
 
