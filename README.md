@@ -6,11 +6,12 @@
 - [Getting Started with Examples](#getting-started-with-examples)
 - [Understanding Events](#understanding-events)
   - [Status Events](#status-events)
+  - [Initial connection Events](#initial-connection-events)
   - [Participant Related Events](#participant-related-events)
   - [Events Related to Other Participants](#events-related-to-other-participants)
   - [Real-time Communication Events](#real-time-communication-events)
   - [Event for Event Reflection](#event-for-event-reflection)
-  - [Initial connection Events](#initial-connection-events)
+
 
 ## Overview
 
