@@ -48,6 +48,16 @@ These events notify about the status of users interacting with objects within ov
 
   https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-aeb1-1aaafe070732
 
+### Initial connection Events
+
+Events related to establishing the initial connection with ovice:
+
+| Event Name                                                                                  | Triggered By  |
+| :------------------------------------------------------------------------------------------ | :------------ |
+| [`ovice_ready`](./docs/technical_details_for_developers.md#ovice_ready)                     | Client Domain |
+| [`ovice_confirmation`](./docs/technical_details_for_developers.md#ovice_confirmation)       | ovice Domain  |
+| [`ovice_ready_confirmed`](./docs/technical_details_for_developers.md#ovice_ready_confirmed) | Client Domain |
+
 ### Participant Related Events
 
 Events triggered by the ovice domain related to the actions of a participant:
@@ -94,13 +104,3 @@ An event meant to reflect messages between participants:
 | Event Name                                                                              | Triggered By |
 | :-------------------------------------------------------------------------------------- | :----------- |
 | [`ovice_event_message`](./docs/technical_details_for_developers.md#ovice_event_message) | ovice Domain |
-
-### Initial connection Events
-
-Events related to establishing the initial connection with ovice:
-
-| Event Name                                                                                  | Triggered By  |
-| :------------------------------------------------------------------------------------------ | :------------ |
-| [`ovice_ready`](./docs/technical_details_for_developers.md#ovice_ready)                     | Client Domain |
-| [`ovice_confirmation`](./docs/technical_details_for_developers.md#ovice_confirmation)       | ovice Domain  |
-| [`ovice_ready_confirmed`](./docs/technical_details_for_developers.md#ovice_ready_confirmed) | Client Domain |
