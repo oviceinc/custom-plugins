@@ -1,85 +1,105 @@
-# Custom Plugins
+# Custom Plugins for ovice
 
-## **Overview**
+## Contents
 
-This repository is for sharing samples for developing Custom Plugins for ovice.
+- [Overview](#overview)
+- [Getting Started with Examples](#getting-started-with-examples)
+- [Understanding Events](#understanding-events)
+  - [Status Events](#status-events)
+  - [Participant Related Events](#participant-related-events)
+  - [Events Related to Other Participants](#events-related-to-other-participants)
+  - [Real-time Communication Events](#real-time-communication-events)
+  - [Event for Event Reflection](#event-for-event-reflection)
+  - [Initial connection Events](#initial-connection-events)
 
-The communication system facilitates real-time interaction between two domains using iframe postMessage. Events are exchanged to manage participants, gather participant information, and enable custom communication between users. This system allows seamless integration for developers to enhance user experiences across different domains.
+## Overview
 
-## **Examples**
+This repository is aimed at developers who are interested in creating Custom Plugins for ovice, a platform that enables real-time interactions through a communication system leveraging iframe postMessage. The system provides a set of events to handle user participation, access participant information, and facilitate custom communication among users. It is designed to help developers integrate features easily and improve the user experience when interconnecting different domains.
 
-| name                                       | description |
-| :----------------------------------------- | :---------- |
-| [Meeting Cash Clock](./meeting-cash-clock) |             |
-| [RSS Reader](./rss-reader)                 |             |
-| [Sound Track](./soundtrack/)               |             |
+## Getting Started with Examples
 
-## **Events**
+Here are some examples of plugins you can use as a reference for developing your own:
 
-### **Additional Information for Status:**
+| Plugin Name                                | Description                                                    |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| [Meeting Cash Clock](./meeting-cash-clock) | A tool to monitor meeting cost in real-time.                   |
+| [RSS Reader](./rss-reader)                 | An RSS feed plugin to read news or articles within ovice.      |
+| [Sound Track](./soundtrack/)               | A plugin to play background music or soundtracks in the space. |
+
+## Understanding Events
+
+### Status Events
+
+These events notify about the status of users interacting with objects within ovice:
 
 - **"subscribed":** User is within the range of the object but not linked.
 
-    https://github.com/oviceinc/custom-plugins/assets/15701307/55e5ed76-7495-4502-93db-ab8d5f509ad1
-
+  https://github.com/oviceinc/custom-plugins/assets/15701307/55e5ed76-7495-4502-93db-ab8d5f509ad1
 
 - **"joined":** User is linked to the object.
 
-    https://github.com/oviceinc/custom-plugins/assets/15701307/f7c9ea47-356f-4917-8563-0425441ec2c0
-
+  https://github.com/oviceinc/custom-plugins/assets/15701307/f7c9ea47-356f-4917-8563-0425441ec2c0
 
 - **"left":** User was linked but left the object.
 
-    https://github.com/oviceinc/custom-plugins/assets/15701307/e35fd892-ac83-4a41-9560-fe4c0edf50a4
-
+  https://github.com/oviceinc/custom-plugins/assets/15701307/e35fd892-ac83-4a41-9560-fe4c0edf50a4
 
 - **"unsubscribed":** User was linked or within the range of the object but moved out of range.
 
-    https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-aeb1-1aaafe070732
+  https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-aeb1-1aaafe070732
 
+### Participant Related Events
 
+Events triggered by the ovice domain related to the actions of a participant:
 
-### **Events Related to Participant**
-
-| event                                                                                                         | sender       |
+| Event Name                                                                                                    | Triggered By |
 | :------------------------------------------------------------------------------------------------------------ | :----------- |
 | [`ovice_participant_subscribed`](./docs/technical_details_for_developers.md#ovice_participant_subscribed)     | ovice Domain |
 | [`ovice_participant_unsubscribed`](./docs/technical_details_for_developers.md#ovice_participant_unsubscribed) | ovice Domain |
 | [`ovice_participant_joined`](./docs/technical_details_for_developers.md#ovice_participant_joined)             | ovice Domain |
 | [`ovice_participant_left`](./docs/technical_details_for_developers.md#ovice_participant_left)                 | ovice Domain |
 
-### **Events Related to other Participant**
+### Events Related to Other Participants
 
-| event                                                                                                                     | sender       |
+Events triggered by the ovice domain related to the actions of other participants:
+
+| Event Name                                                                                                                | Triggered By |
 | :------------------------------------------------------------------------------------------------------------------------ | :----------- |
 | [`ovice_other_participant_subscribed`](./docs/technical_details_for_developers.md#ovice_other_participant_subscribed)     | ovice Domain |
 | [`ovice_other_participant_unsubscribed`](./docs/technical_details_for_developers.md#ovice_other_participant_unsubscribed) | ovice Domain |
 | [`ovice_other_participant_joined`](./docs/technical_details_for_developers.md#ovice_other_participant_joined)             | ovice Domain |
 | [`ovice_other_participant_left`](./docs/technical_details_for_developers.md#ovice_other_participant_left)                 | ovice Domain |
 
-### **Events for Participant Information Retrieval**
+### Events for Participant Information
 
-| event                                                                                         | sender        |
+Events designed to retrieve information about participants:
+
+| Event Name                                                                                    | Triggered By  |
 | :-------------------------------------------------------------------------------------------- | :------------ |
 | [`ovice_get_participants`](./docs/technical_details_for_developers.md#ovice_get_participants) | Client Domain |
 | [`ovice_participants`](./docs/technical_details_for_developers.md#ovice_participants)         | ovice Domain  |
 
 ### Real-time Communication Events
 
-| event                                                                                     | sender        |
+Events facilitating real-time communication between participants:
+| Event Name | Triggered By |
 | :---------------------------------------------------------------------------------------- | :------------ |
 | [`ovice_emit_to_others`](./docs/technical_details_for_developers.md#ovice_emit_to_others) | Client Domain |
-| [`ovice_emit_to`](./docs/technical_details_for_developers.md#ovice_emit_to)               | Client Domain |
+| [`ovice_emit_to`](./docs/technical_details_for_developers.md#ovice_emit_to) | Client Domain |
 
-### Reflection Event
+### Event for Event Reflection
 
-| event                                                                                   | sender       |
+An event meant to reflect messages between participants:
+
+| Event Name                                                                              | Triggered By |
 | :-------------------------------------------------------------------------------------- | :----------- |
 | [`ovice_event_message`](./docs/technical_details_for_developers.md#ovice_event_message) | ovice Domain |
 
-### Initial connection event (in preparation)
+### Initial connection Events
 
-| event                                                                                       | sender        |
+Events related to establishing the initial connection with ovice:
+
+| Event Name                                                                                  | Triggered By  |
 | :------------------------------------------------------------------------------------------ | :------------ |
 | [`ovice_ready`](./docs/technical_details_for_developers.md#ovice_ready)                     | Client Domain |
 | [`ovice_confirmation`](./docs/technical_details_for_developers.md#ovice_confirmation)       | ovice Domain  |
