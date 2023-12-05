@@ -137,6 +137,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -150,6 +151,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": true,
       "language": "en"
     }
   }
@@ -169,6 +171,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -182,6 +185,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": true,
       "language": "en"
     }
   }
@@ -201,6 +205,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -214,6 +219,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": true,
+      "isSelf": true,
       "language": "en"
     }
   }
@@ -233,6 +239,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -246,6 +253,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": true,
       "language": "en"
     }
   }
@@ -290,6 +298,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -302,6 +311,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": false,
       "language": "en"
     }
   }
@@ -320,6 +330,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -332,6 +343,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": false,
       "language": "en"
     }
   }
@@ -350,6 +362,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -362,6 +375,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": false,
       "language": "en"
     }
   }
@@ -380,6 +394,7 @@ sequenceDiagram
   - **workspaceId** (string): Workspace ID of the user.
   - **language** (string, optional): Preferred language of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -392,6 +407,7 @@ sequenceDiagram
       "avatarUrl": "<https://example.com/avatar.jpg>",
       "workspaceId": 987,
       "isHost": false,
+      "isSelf": false,
       "language": "en"
     }
   }
@@ -438,6 +454,7 @@ sequenceDiagram
   - **language** (string, optional): Preferred language of the user.
   - **status** (string, optional): Current connection status of the user.
   - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean, optional): represents if the user is self.
 
   ```json
   {
@@ -451,6 +468,7 @@ sequenceDiagram
         "avatarUrl": "<https://example.com/avatar.jpg>",
         "workspaceId": 987,
         "isHost": false,
+        "isSelf": true,
         "status": "joined",
         "language": "en"
       },
@@ -461,7 +479,8 @@ sequenceDiagram
         "objectType": "static",
         "avatarUrl": "<https://example.com/avatar.jpg>",
         "workspaceId": 987,
-        "isHost": false,,
+        "isHost": false,
+        "isSelf": false,
         "status": "subscribed",
         "language": "en"
       }
@@ -529,7 +548,7 @@ Facilitate custom interactions among users who are linked or subscribed to the s
         "key2": 42,
         "key3": ["item1", "item2"]
       },
-      "**to**": "123"
+      "to": "123"
     }
   }
   ```

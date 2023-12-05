@@ -1,5 +1,7 @@
 # Custom Plugins for ovice
 
+![Sound Track](./asset/sound_track.png)
+
 ## Contents
 
 - [Overview](#overview)
