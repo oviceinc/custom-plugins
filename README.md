@@ -14,7 +14,6 @@
   - [Real-time Communication Events](#real-time-communication-events)
   - [Event for Event Reflection](#event-for-event-reflection)
 
-
 ## Overview
 
 This repository is aimed at developers who are interested in creating Custom Plugins for ovice, a platform that enables real-time interactions through a communication system leveraging iframe postMessage. The system provides a set of events to handle user participation, access participant information, and facilitate custom communication among users. It is designed to help developers integrate features easily and improve the user experience when interconnecting different domains.
@@ -23,11 +22,13 @@ This repository is aimed at developers who are interested in creating Custom Plu
 
 Here are some examples of plugins you can use as a reference for developing your own:
 
-| Plugin Name                                | Description                                                    |
-| ------------------------------------------ | -------------------------------------------------------------- |
-| [Meeting Cash Clock](./meeting-cash-clock) | A tool to monitor meeting cost in real-time.                   |
-| [RSS Reader](./rss-reader)                 | An RSS feed plugin to read news or articles within ovice.      |
-| [Sound Track](./soundtrack/)               | A plugin to play background music or soundtracks in the space. |
+| Plugin Name                                | Description                                                                       |
+| ------------------------------------------ | --------------------------------------------------------------------------------- |
+| [Meeting Cash Clock](./meeting-cash-clock) | A tool to monitor meeting cost in real-time.                                      |
+| [RSS Reader](./rss-reader)                 | An RSS feed plugin to read news or articles within ovice.                         |
+| [Sound Track](./soundtrack/)               | A plugin to play background music or soundtracks in the space.                    |
+| [Fast Press Game](./fast-press-game/)      | This is a quick press game for multiple people that can be used for quizzes, etc. |
+| [Grouping](./grouping/)                    | This is a tool that allows you to efficiently divide participants into groups.    |
 
 ## Understanding Events
 

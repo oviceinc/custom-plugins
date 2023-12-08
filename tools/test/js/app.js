@@ -94,42 +94,15 @@ function IframeComponent({
   );
 }
 
-const urls = [
-  {
-    name: 'Fast Press Game',
-    url: '../public/fast-press-game/',
-  },
-  {
-    name: 'Grouping',
-    url: '../public/grouping/',
-  },
-];
-
 function TestApp() {
-  const [url, setUrl] = useState(urls[0].url);
-  const iframes = [
-    {
-      id: 'frame1',
+  const [url, setUrl] = useState(testUrls[0].url);
+  const iframes = mockUsers.map(item => {
+    return {
+      ...item,
+      id: `frame${item.userId}`,
       src: url,
-      userId: '1',
-      status: 'joined',
-      host: true,
-    },
-    {
-      id: 'frame2',
-      src: url,
-      userId: '2',
-      status: 'joined',
-      host: false,
-    },
-    {
-      id: 'frame3',
-      src: url,
-      userId: '3',
-      status: 'subscribed',
-      host: false,
-    },
-  ];
+    };
+  });
   const [postTargets, setPostTargets] = useState({});
   const users = iframes.map(item => ({
     id: item.userId,
@@ -213,7 +186,7 @@ function TestApp() {
             setUrl(e.target.value);
           }}
         >
-          {urls.map((item, index) => {
+          {testUrls.map((item, index) => {
             return (
               <option key={index} value={item.url}>
                 {item.name}
