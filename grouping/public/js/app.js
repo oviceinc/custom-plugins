@@ -12,8 +12,6 @@ function GroupingApp() {
     onMessageEvent,
   } = useCustomObjectClient();
 
-  console.log("users", users)
-
   const { groupSize, setGroupSize, groups, setGroups, handleGrouping } = useGrouping(
     users,
     emit
