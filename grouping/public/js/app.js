@@ -26,7 +26,7 @@ function GroupingApp() {
       console.log(event);
     });
     onMessageEvent(event => {
-      if (event.eventType && event.eventType === 'grouping' && event.message) {
+      if (event.event && event.event === 'grouping' && event.message) {
         setGroups(event.message.groups);
       }
     });

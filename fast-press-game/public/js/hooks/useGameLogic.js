@@ -35,7 +35,7 @@ function useGameLogic() {
   useEffect(() => {
     const handleEvent = event => {
       console.log('event', event);
-      switch (event.eventType) {
+      switch (event.event) {
         case 'gameStarted':
           setIsGameStarted(true);
           setIsStandby(false);

@@ -1,7 +1,41 @@
 const { useState, useRef, useCallback, useEffect } = React;
+
+class Participant {
+  constructor(data = {}) {
+    this.id = data.id;
+    this.email = data.email;
+    this.name = data.name;
+    this.objectId = data.objectId;
+    this.objectType = data.objectType;
+    this.avatarUrl = data.avatarUrl;
+    this.workspaceId = data.workspaceId;
+    this.isHost = data.isHost;
+    this.isSelf = data.isSelf;
+    this.language = data.language;
+    this.status = data.status; // joined, subscribed, etc.
+  }
+}
+
+class Message {
+  constructor(data = {}) {
+    this.source = data.source;
+    this.event = data.event;
+    this.objectId = data.objectId;
+    this.message = data.message;
+    this.to = data.to; // Optional, only used for direct messages
+  }
+}
+
+class MessageEvent {
+  constructor(data = {}) {
+    this.type = data.type;
+    this.payload = data.payload;
+  }
+}
+
 // Managing user information
 function useUsers() {
-  const [user, setUser] = useState({});
+  const [user, setUser] = useState(new Participant());
   const [users, setUsers] = useState([]);
   return { user, users, setUser, setUsers };
 }
@@ -32,7 +66,8 @@ function useEventHandlers() {
 function useMessageEmitter(user) {
   const postMessage = useCallback(
     message => {
-      window.parent.postMessage(message, '*');
+      const messageInstance = new MessageEvent(message);
+      window.parent.postMessage(messageInstance, '*');
     },
     [window]
   );
@@ -124,36 +159,36 @@ function useCustomObjectClient() {
   // Message handler
   const handleMessage = useCallback(
     event => {
-      console.log('handleMessage event', event.data);
-      const { type, payload = {} } = event.data;
-      eventFunction.current && eventFunction.current(event.data);
+      const eventInstance = new MessageEvent(event.data);
+      eventFunction.current && eventFunction.current(eventInstance);
       setLastMessage(event.data);
-      switch (type) {
+      switch (eventInstance.type) {
         case 'ovice_participants':
-          setUsers(payload);
+          const participants = eventInstance.payload.map(
+            p => new Participant(p)
+          );
+          setUsers(participants);
           break;
         case 'ovice_participant_subscribed':
         case 'ovice_participant_unsubscribed':
         case 'ovice_participant_joined':
         case 'ovice_participant_left':
-          setUser(payload);
-          userEventFunction.current && userEventFunction.current(payload);
+          const participant = new Participant(eventInstance.payload);
+          setUser(participant);
+          userEventFunction.current && userEventFunction.current(participant);
           break;
         case 'ovice_other_participant_subscribed':
         case 'ovice_other_participant_unsubscribed':
         case 'ovice_other_participant_joined':
         case 'ovice_other_participant_left':
-          userEventFunction.current && userEventFunction.current(payload);
+          userEventFunction.current && userEventFunction.current(participant);
           break;
         case 'ovice_confirmation':
           postMessage({ type: 'ovice_ready_confirmed' });
           break;
         case 'ovice_event_message':
-          messageEventFunction.current &&
-            messageEventFunction.current({
-              ...payload,
-              eventType: payload.event,
-            });
+          const message = new Message(eventInstance.payload);
+          messageEventFunction.current && messageEventFunction.current(message);
           break;
         default:
           break;
