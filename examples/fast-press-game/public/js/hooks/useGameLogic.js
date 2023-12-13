@@ -1,7 +1,7 @@
 const { useState, useCallback, useEffect } = React;
 
 function useGameLogic() {
-  const { user, isHost, isStaticObject, isJoined, emit, onMessageEvent } =
+  const { user, isHost, isStaticObject, isJoined, broadcast, onMessageEvent } =
     useCustomObjectClient();
 
   const [isGameStarted, setIsGameStarted] = useState(false);
@@ -13,8 +13,8 @@ function useGameLogic() {
   const startGame = useCallback(() => {
     setIsGameStarted(true);
     setIsStandby(false);
-    emit('gameStarted', { startTimestamp: new Date().getTime() });
-  }, [emit]);
+    broadcast('gameStarted', { startTimestamp: new Date().getTime() });
+  }, [broadcast]);
 
   const answer = useCallback(() => {
     if (winner) return;
@@ -22,15 +22,15 @@ function useGameLogic() {
     setIsStandby(false);
     const now = new Date().getTime();
     setFastest(prev => [...prev, { name: user.name || 'unknown', time: now }]);
-    emit('gameEnded', { name: user.name || 'unknown', endTimestamp: now });
-  }, [winner, user.name, emit]);
+    broadcast('gameEnded', { name: user.name || 'unknown', endTimestamp: now });
+  }, [winner, user.name, broadcast]);
 
   const reset = useCallback(() => {
     setIsGameStarted(false);
     setIsStandby(false);
     setFastest([]);
-    emit('gameReset', {});
-  }, [emit]);
+    broadcast('gameReset', {});
+  }, [broadcast]);
 
   useEffect(() => {
     const handleEvent = event => {

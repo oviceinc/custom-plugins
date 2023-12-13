@@ -7,15 +7,13 @@ function GroupingApp() {
     isHost,
     isStaticObject,
     isJoined,
-    emit,
+    broadcast,
     onEvent,
     onMessageEvent,
   } = useCustomObjectClient();
 
-  const { groupSize, setGroupSize, groups, setGroups, handleGrouping } = useGrouping(
-    users,
-    emit
-  );
+  const { groupSize, setGroupSize, groups, setGroups, handleGrouping } =
+    useGrouping(users, broadcast);
 
   const isGroupMaster = isHost || (isStaticObject && isJoined);
 
@@ -56,9 +54,7 @@ function GroupingApp() {
         <h2 className="text-xl font-bold">Grouping Result</h2>
         <div className="select-text">
           {groups.map((group, index) => {
-            const isMyGroup =
-              user.id &&
-              group.some(v => v.id.toString() === user.id.toString());
+            const isMyGroup = user.id && group.some(v => v.id === user.id);
             return (
               <div key={index} className="mb-8">
                 <h3
@@ -74,8 +70,7 @@ function GroupingApp() {
                 </h3>
                 <ul>
                   {group.map(v => {
-                    const isMyself =
-                      user.id && v.id.toString() === user.id.toString();
+                    const isMyself = user.id && v.id === user.id;
                     return (
                       <li
                         key={v.id}

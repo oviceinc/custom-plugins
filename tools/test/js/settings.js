@@ -1,11 +1,11 @@
 const testUrls = [
   {
     name: 'Fast Press Game',
-    url: '../../fast-press-game/public/',
+    url: '../../examples/fast-press-game/public/',
   },
   {
     name: 'Grouping',
-    url: '../../grouping/public/',
+    url: '../../examples/grouping/public/',
   },
 ];
 
