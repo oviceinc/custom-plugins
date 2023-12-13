@@ -4,32 +4,6 @@ import { v4 as uuidv4 } from "uuid";
 import { useMeetingContext } from "../../context/MeetingContext";
 import { useIframePostMessage } from "../useIframePostMessage";
 
-type SelfEvent =
-  | "ovice_participant_joined"
-  | "ovice_participant_left"
-  | "ovice_participant_subscribed"
-  | "ovice_participant_unsubscribed";
-
-type OtherParticipantsEvent =
-  | "ovice_other_participant_joined"
-  | "ovice_other_participant_left"
-  | "ovice_other_participant_subscribed"
-  | "ovice_other_participant_unsubscribed";
-
-const selfEvents: SelfEvent[] = [
-  "ovice_participant_joined",
-  "ovice_participant_left",
-  "ovice_participant_subscribed",
-  "ovice_participant_unsubscribed",
-];
-
-const otherParticipantsEvents: OtherParticipantsEvent[] = [
-  "ovice_other_participant_joined",
-  "ovice_other_participant_left",
-  "ovice_other_participant_subscribed",
-  "ovice_other_participant_unsubscribed",
-];
-
 export const useOviceRecievedEventHandler = () => {
   const { meeting, currentUser, setMeeting, setCurrentUser } =
     useMeetingContext();
@@ -67,7 +41,7 @@ export const useOviceRecievedEventHandler = () => {
     (to: string) => {
       if (currentUser) {
         postMessage({
-          type: "ovice_emit_to",
+          type: "ovice_emit_message",
           payload: {
             objectId: currentUser.objectId,
             source: currentUser.id.toString(),
@@ -85,14 +59,14 @@ export const useOviceRecievedEventHandler = () => {
       if (!currentUser?.isHost) {
         return;
       }
-      if (event.type === "ovice_other_participant_joined") {
+      if (event.type === "ovice_participant_joined") {
         addParticipant(event.payload);
         if (currentUser) {
           sendMeetingDetails(event.payload.id);
         }
       } else if (
-        event.type === "ovice_other_participant_left" ||
-        event.type === "ovice_other_participant_unsubscribe"
+        event.type === "ovice_participant_left" ||
+        event.type === "ovice_participant_unsubscribed"
       ) {
         setMeeting((prev) => {
           if (!prev) {
@@ -150,7 +124,7 @@ export const useOviceRecievedEventHandler = () => {
 
   const handleMessageEvents = useCallback(
     (event: OviceEvent) => {
-      if (event.type === "ovice_event_message") {
+      if (event.type === "ovice_message") {
         if (event.payload.event === "meeting_details") {
           setMeeting(event.payload.message);
         }
@@ -161,16 +135,19 @@ export const useOviceRecievedEventHandler = () => {
 
   return useCallback(
     (eventData: OviceEvent) => {
-      if (selfEvents.includes(eventData.type as SelfEvent)) {
-        handleSelfEvents(eventData);
-      } else if (
-        otherParticipantsEvents.includes(
-          eventData.type as OtherParticipantsEvent
-        )
-      ) {
-        handleOtherParticipantsEvents(eventData);
-      } else if (eventData.type === "ovice_event_message") {
-        handleMessageEvents(eventData);
+      switch (eventData.type) {
+        case "ovice_participant_joined":
+        case "ovice_participant_left":
+        case "ovice_participant_subscribed":
+        case "ovice_participant_unsubscribed":
+          const participantHandler = eventData.payload.isSelf
+            ? handleSelfEvents
+            : handleOtherParticipantsEvents;
+          participantHandler(eventData);
+          break;
+        case "ovice_message":
+          handleMessageEvents(eventData);
+          break;
       }
     },
     [handleMessageEvents, handleOtherParticipantsEvents, handleSelfEvents]

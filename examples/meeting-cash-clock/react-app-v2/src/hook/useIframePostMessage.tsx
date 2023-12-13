@@ -13,12 +13,12 @@ type CustomPluginEmitToData = {
 } & CustomPluginEmitToOthersData;
 
 export type OviceEmitToOthersRequest = {
-  type: "ovice_emit_to_others";
+  type: "ovice_broadcast_message";
   payload: CustomPluginEmitToOthersData;
 };
 
 export type OviceEmitToRequest = {
-  type: "ovice_emit_to";
+  type: "ovice_emit_message";
   payload: CustomPluginEmitToData;
 };
 
@@ -36,7 +36,7 @@ export const usePostMessageMeetingDetails = () => {
   return useCallback(
     (meeting: Meeting, currentUser: OviceClient) => {
       iframePostMessage({
-        type: "ovice_emit_to_others",
+        type: "ovice_broadcast_message",
         payload: {
           objectId: currentUser.objectId,
           source: currentUser.id.toString(),

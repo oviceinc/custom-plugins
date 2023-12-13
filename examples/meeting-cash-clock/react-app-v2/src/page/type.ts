@@ -15,27 +15,26 @@ export type OvicePayloadType = {
   objectId: string;
   objectType: string;
   isHost?: boolean;
+  isSelf: boolean;
 };
 
 type OviceParticipantJoinedEvent = {
-  type: "ovice_participant_joined" | "ovice_other_participant_joined";
+  type: "ovice_participant_joined";
   payload: OvicePayloadType;
 };
 
 type OviceParticipantLeftEvent = {
-  type: "ovice_participant_left" | "ovice_other_participant_left";
+  type: "ovice_participant_left";
   payload: OvicePayloadType;
 };
 
 type OviceParticipantSubscribedEvent = {
-  type: "ovice_participant_subscribed" | "ovice_other_participant_subscribe";
+  type: "ovice_participant_subscribed";
   payload: OvicePayloadType;
 };
 
 type OviceParticipantUnSubscribedEvent = {
-  type:
-    | "ovice_participant_unsubscribed"
-    | "ovice_other_participant_unsubscribe";
+  type: "ovice_participant_unsubscribed";
   payload: OvicePayloadType;
 };
 
@@ -48,7 +47,7 @@ type OviceMessageEventPayload = {
 };
 
 type OviceMessageEvent = {
-  type: "ovice_event_message";
+  type: "ovice_message";
   payload: OviceMessageEventPayload;
 };
 
