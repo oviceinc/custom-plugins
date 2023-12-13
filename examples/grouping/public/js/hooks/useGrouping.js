@@ -1,6 +1,6 @@
 const { useState, useCallback } = React;
 
-function useGrouping(users, emit) {
+function useGrouping(users, broadcast) {
   const [groupSize, setGroupSize] = useState(2);
   const [groups, setGroups] = useState([]);
 
@@ -12,9 +12,9 @@ function useGrouping(users, emit) {
       const group = shuffledUsers.slice(i, i + groupUserLimit);
       groupedUsers.push(group);
     }
-    emit('grouping', { groups: groupedUsers });
+    broadcast('grouping', { groups: groupedUsers });
     setGroups(groupedUsers);
-  }, [users, groupSize, emit]);
+  }, [users, groupSize, broadcast]);
 
   return {
     groupSize,

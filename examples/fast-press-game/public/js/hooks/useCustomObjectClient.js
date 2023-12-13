@@ -2,17 +2,24 @@ const { useState, useRef, useCallback, useEffect } = React;
 
 class Participant {
   constructor(data = {}) {
-    this.id = data.id;
+    this._id = data.id;
     this.email = data.email;
     this.name = data.name;
     this.objectId = data.objectId;
     this.objectType = data.objectType;
     this.avatarUrl = data.avatarUrl;
-    this.workspaceId = data.workspaceId;
+    this._workspaceId = data.workspaceId;
     this.isHost = data.isHost;
     this.isSelf = data.isSelf;
+    this.isVisitor = data.isVisitor;
     this.language = data.language;
     this.status = data.status; // joined, subscribed, etc.
+  }
+  get id() {
+    return this._id && this._id.toString();
+  }
+  get workspaceId() {
+    return this._workspaceId && this._workspaceId.toString();
   }
 }
 
@@ -22,7 +29,10 @@ class Message {
     this.event = data.event;
     this.objectId = data.objectId;
     this.message = data.message;
-    this.to = data.to; // Optional, only used for direct messages
+    this._to = data.to; // Optional, only used for direct messages
+  }
+  get to() {
+    return this._to && this._to.toString();
   }
 }
 
@@ -71,15 +81,15 @@ function useMessageEmitter(user) {
     },
     [window]
   );
-  const emit = useCallback(
+  const broadcast = useCallback(
     (event, message) => {
       postMessage({
-        type: 'ovice_emit_to_others',
+        type: 'ovice_broadcast_message',
         payload: {
           event: event,
           message: message,
           objectId: user.objectId && user.objectId.toString(),
-          source: user.id && user.id.toString(),
+          source: user.id && user.id,
         },
       });
     },
@@ -88,19 +98,19 @@ function useMessageEmitter(user) {
   const emitTo = useCallback(
     (userId, event, message) => {
       postMessage({
-        type: 'ovice_emit_to',
+        type: 'ovice_emit_message',
         payload: {
           event: event,
           message: message,
           objectId: user.objectId && user.objectId.toString(),
-          source: user.id && user.id.toString(),
-          to: userId && userId.toString(),
+          source: user.id && user.id,
+          to: userId && userId,
         },
       });
     },
     [user, postMessage]
   );
-  return { postMessage, emit, emitTo };
+  return { postMessage, broadcast, emitTo };
 }
 // Calculating status
 function useStatus(user, users) {
@@ -111,22 +121,18 @@ function useStatus(user, users) {
     ? users.some(user => user.isHost)
     : false;
   const isHost = user.isHost === true;
-  const isMaster =
-    isHost ||
-    (isStaticObject ? user.id.toString() === users[0].id.toString() : false);
+  const isMaster = isHost || (isStaticObject ? user.id === users[0].id : false);
   const isJoined =
     users.length &&
     user.id &&
-    users.some(
-      v => user.id.toString() === v.id.toString() && v.status === 'joined'
-    );
+    users.some(v => user.id === v.id && v.status === 'joined');
   return { isStaticObject, isDynamicObject, isHost, isMaster, isJoined };
 }
 // Initialization and updating the user list
 function useInitialization(postMessage) {
   const init = useCallback(() => {
     postMessage({
-      type: 'ovice_ready',
+      type: 'ovice_get_participants',
     });
   }, [postMessage]);
   const updateUsers = useCallback(() => {
@@ -150,7 +156,7 @@ function useCustomObjectClient() {
     messageEventFunction,
   } = useEventHandlers();
   // Sending messages
-  const { postMessage, emit, emitTo } = useMessageEmitter(user);
+  const { postMessage, broadcast, emitTo } = useMessageEmitter(user);
   // Calculating status
   const { isStaticObject, isDynamicObject, isHost, isMaster, isJoined } =
     useStatus(user, users);
@@ -168,25 +174,26 @@ function useCustomObjectClient() {
             p => new Participant(p)
           );
           setUsers(participants);
+          setUser(
+            participants.find(participant => {
+              return participant.isSelf;
+            }) || new Participant()
+          );
           break;
         case 'ovice_participant_subscribed':
         case 'ovice_participant_unsubscribed':
         case 'ovice_participant_joined':
         case 'ovice_participant_left':
           const participant = new Participant(eventInstance.payload);
-          setUser(participant);
-          userEventFunction.current && userEventFunction.current(participant);
-          break;
-        case 'ovice_other_participant_subscribed':
-        case 'ovice_other_participant_unsubscribed':
-        case 'ovice_other_participant_joined':
-        case 'ovice_other_participant_left':
+          if (participant.isSelf) {
+            setUser(participant);
+          }
           userEventFunction.current && userEventFunction.current(participant);
           break;
         case 'ovice_confirmation':
           postMessage({ type: 'ovice_ready_confirmed' });
           break;
-        case 'ovice_event_message':
+        case 'ovice_message':
           const message = new Message(eventInstance.payload);
           messageEventFunction.current && messageEventFunction.current(message);
           break;
@@ -231,7 +238,7 @@ function useCustomObjectClient() {
     isJoined,
     updateUsers,
     postMessage,
-    emit,
+    broadcast,
     emitTo,
     onEvent,
     onUserEvent,

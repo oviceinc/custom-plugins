@@ -27,8 +27,8 @@ Here are some examples of plugins you can use as a reference for developing your
 | [Meeting Cash Clock](./meeting-cash-clock) | A tool to monitor meeting cost in real-time.                                      |
 | [RSS Reader](./rss-reader)                 | An RSS feed plugin to read news or articles within ovice.                         |
 | [Sound Track](./soundtrack/)               | A plugin to play background music or soundtracks in the space.                    |
-| [Fast Press Game](./fast-press-game/)      | This is a quick press game for multiple people that can be used for quizzes, etc. |
-| [Grouping](./grouping/)                    | This is a tool that allows you to efficiently divide participants into groups.    |
+| [Fast Press Game](./examples/fast-press-game/)      | This is a quick press game for multiple people that can be used for quizzes, etc. |
+| [Grouping](./examples/grouping/)                    | This is a tool that allows you to efficiently divide participants into groups.    |
 
 ## Understanding Events
 
