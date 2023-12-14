@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { OviceEvent, OvicePayloadType } from "../../page/type";
-import { v4 as uuidv4 } from "uuid";
 import { useMeetingContext } from "../../context/MeetingContext";
 import { useIframePostMessage } from "../useIframePostMessage";
 
@@ -10,6 +9,7 @@ export const useOviceRecievedEventHandler = () => {
   const postMessage = useIframePostMessage();
   const addParticipant = useCallback(
     (payload: OvicePayloadType) => {
+      const now = Date.now();
       setMeeting((prev) => {
         if (!prev) {
           return prev;
@@ -18,18 +18,34 @@ export const useOviceRecievedEventHandler = () => {
         const index = oldMeeting.participants.findIndex(
           (part) => part.id === payload.id
         );
+
         if (index === -1) {
-          const timeSpent =
-            oldMeeting.startTime && oldMeeting.status !== "ended"
-              ? Date.now() - oldMeeting.startTime
-              : 0;
           oldMeeting.participants.push({
             id: payload.id,
             name: payload.name,
-            timeSpent,
+            isSelf: payload.isSelf,
+            owner: payload.isHost,
+            joinedAt: now,
+            leftAt: null,
+            elapsedTime: 0,
+            timeSpent: 0,
             totalCost: 0,
             left: false,
           });
+          return oldMeeting;
+        }
+        const oldParticipant = { ...oldMeeting.participants[index] };
+        if (
+          oldParticipant.left &&
+          oldParticipant.leftAt &&
+          oldParticipant.joinedAt
+        ) {
+          oldParticipant.elapsedTime +=
+            oldParticipant.leftAt - oldParticipant.joinedAt;
+          oldParticipant.joinedAt = now;
+          oldParticipant.leftAt = null;
+          oldParticipant.left = false;
+          oldMeeting.participants[index] = oldParticipant;
         }
         return oldMeeting;
       });
@@ -54,6 +70,7 @@ export const useOviceRecievedEventHandler = () => {
     },
     [currentUser, meeting, postMessage]
   );
+
   const handleOtherParticipantsEvents = useCallback(
     (event: OviceEvent) => {
       if (!currentUser?.isHost) {
@@ -68,6 +85,7 @@ export const useOviceRecievedEventHandler = () => {
         event.type === "ovice_participant_left" ||
         event.type === "ovice_participant_unsubscribed"
       ) {
+        const now = Date.now();
         setMeeting((prev) => {
           if (!prev) {
             return prev;
@@ -78,14 +96,7 @@ export const useOviceRecievedEventHandler = () => {
           );
           if (index > -1) {
             const part = { ...oldMeeting.participants[index] };
-            let durration = 0;
-            if (oldMeeting.elapsedTime) {
-              durration = oldMeeting.elapsedTime - (part.timeSpent ?? 0);
-            } else if (oldMeeting.startTime) {
-              durration = Date.now() - oldMeeting.startTime;
-              durration -= part.timeSpent ?? 0;
-            }
-            part.timeSpent = durration;
+            part.leftAt = now;
             part.left = true;
             oldMeeting.participants[index] = part;
           }
@@ -98,28 +109,40 @@ export const useOviceRecievedEventHandler = () => {
     [addParticipant, currentUser, sendMeetingDetails, setMeeting]
   );
 
+  const updateMeeting = useCallback(
+    (data: OvicePayloadType) => {
+      if (data.isHost && !meeting.hasOwner && data.isSelf) {
+        setMeeting((prev) => {
+          const oldMeeting = { ...prev };
+          oldMeeting.hasOwner = true;
+          return oldMeeting;
+        });
+      }
+      if (data.isSelf) {
+        setCurrentUser(data);
+      }
+      addParticipant(data);
+    },
+    [addParticipant, meeting.hasOwner, setCurrentUser, setMeeting]
+  );
+
   const handleSelfEvents = useCallback(
     (event: OviceEvent) => {
       if (event.type === "ovice_participant_joined") {
-        if (event.payload.isHost) {
-          setMeeting({
-            id: uuidv4(),
-            costPerHour: 0,
-            status: "ready",
-            participants: [],
-          });
-          addParticipant(event.payload);
-        }
-        setCurrentUser(event.payload);
+        updateMeeting(event.payload);
       } else if (
         event.type === "ovice_participant_left" ||
         event.type === "ovice_participant_unsubscribed"
       ) {
+        setMeeting((prev) => {
+          const oldMeeting = { ...prev };
+          oldMeeting.hasOwner = false;
+          return oldMeeting;
+        });
         setCurrentUser(undefined);
-        setMeeting(undefined);
       }
     },
-    [addParticipant, setCurrentUser, setMeeting]
+    [setCurrentUser, setMeeting, updateMeeting]
   );
 
   const handleMessageEvents = useCallback(
@@ -148,8 +171,19 @@ export const useOviceRecievedEventHandler = () => {
         case "ovice_message":
           handleMessageEvents(eventData);
           break;
+        case "ovice_participants":
+          eventData.payload.forEach((part) => {
+            if (part.status === "joined") {
+              updateMeeting(part);
+            }
+          });
       }
     },
-    [handleMessageEvents, handleOtherParticipantsEvents, handleSelfEvents]
+    [
+      handleSelfEvents,
+      handleOtherParticipantsEvents,
+      handleMessageEvents,
+      updateMeeting,
+    ]
   );
 };

@@ -11,8 +11,8 @@ import { timeFormat } from "./util";
 
 type TimerUpProps = {
   onStartMeeting?: (startTime: number) => void;
-  onPauseMeeting?: (elapsedTime: number) => void;
-  onStopMeeting?: (elapsedTime: number) => void;
+  onPauseMeeting?: (elapsedTime: number, endTime: number) => void;
+  onStopMeeting?: (elapsedTime: number, endTime: number) => void;
   onResumeMeeting?: (elapsedTime: number, startTime: number) => void;
   onClearMeeting?: () => void;
   meetingStartTime?: number | null;
@@ -69,7 +69,7 @@ const TimerUp = memo(
 
     const handleStart = useCallback(() => {
       if (!isRunning) {
-        const now =  Date.now() 
+        const now = Date.now();
         onStartMeeting?.(now);
         setStartTime(now);
         setIsRunning(true);
@@ -78,24 +78,25 @@ const TimerUp = memo(
     }, [isRunning, onStartMeeting]);
 
     const handleStop = useCallback(() => {
-      if (isRunning) {
-        onStopMeeting?.(elapsedTime);
+      if (isPaused || isRunning) {
+        onStopMeeting?.(elapsedTime, startTime);
         setIsRunning(false);
         setIsStoped(true);
+        setIsPaused(false);
       }
-    }, [elapsedTime, isRunning, onStopMeeting]);
+    }, [elapsedTime, isPaused, isRunning, onStopMeeting, startTime]);
 
     const handlePause = useCallback(() => {
       if (isRunning) {
-        onPauseMeeting?.(elapsedTime);
+        onPauseMeeting?.(elapsedTime, startTime);
         setIsRunning(false);
         setIsPaused(true);
       }
-    }, [elapsedTime, isRunning, onPauseMeeting]);
+    }, [elapsedTime, isRunning, onPauseMeeting, startTime]);
 
     const handleResume = useCallback(() => {
       if (!isRunning) {
-        const now =  Date.now() 
+        const now = Date.now();
         onResumeMeeting?.(elapsedTime, now);
         setStartTime(now);
         setIsRunning(true);
@@ -119,7 +120,7 @@ const TimerUp = memo(
       <Stack gap={5} padding={1}>
         <Typography
           sx={{ backgroundColor: "#E0E0E0" }}
-          fontSize={"3rem"} 
+          fontSize={"3rem"}
           paddingLeft={2}
           paddingRight={2}
         >

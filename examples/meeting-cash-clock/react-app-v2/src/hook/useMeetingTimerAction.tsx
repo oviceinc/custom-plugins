@@ -19,14 +19,16 @@ export const useMeetingTimerAction = () => {
         meeting.startTime = startTime;
         meeting.status = "started";
         meeting.participants = meeting.participants
-        .filter((part) => !part.left)
-        .map((participant) => {
-          return {
-            ...participant,
-            timeSpent: 0,
-            totalCost: 0,
-          };
-        });
+          .filter((part) => !part.left)
+          .map((participant) => {
+            return {
+              ...participant,
+              joinedAt: Date.now(),
+              elapsedTime: 0,
+              timeSpent: 0,
+              totalCost: 0,
+            };
+          });
         postMessageMeetingDetails(meeting, currentUser);
         return meeting;
       });
@@ -34,7 +36,7 @@ export const useMeetingTimerAction = () => {
     [currentUser, meeting?.status, postMessageMeetingDetails, setMeeting]
   );
   const pasuseMeeting = useCallback(
-    (elapsedTime: number) => {
+    (elapsedTime: number, startTime: number) => {
       if (meeting?.status !== "started" || !currentUser) {
         return;
       }
@@ -45,6 +47,18 @@ export const useMeetingTimerAction = () => {
         const meeting = { ...prev };
         meeting.elapsedTime = elapsedTime;
         meeting.status = "paused";
+        meeting.participants = meeting.participants.map((participant) => {
+          if (!participant.left) {
+            return {
+              ...participant,
+              elapsedTime:
+                participant.elapsedTime +
+                (startTime - Number(participant.joinedAt)),
+              joinedAt: startTime,
+            };
+          }
+          return participant;
+        });
         postMessageMeetingDetails(meeting, currentUser);
         return meeting;
       });
@@ -64,6 +78,15 @@ export const useMeetingTimerAction = () => {
         meeting.startTime = startTime;
         meeting.elapsedTime = elapsedTime;
         meeting.status = "started";
+        meeting.participants = meeting.participants.map((participant) => {
+          if (!participant.left) {
+            return {
+              ...participant,
+              joinedAt: startTime,
+            };
+          }
+          return participant;
+        });
         postMessageMeetingDetails(meeting, currentUser);
         return meeting;
       });
@@ -71,40 +94,42 @@ export const useMeetingTimerAction = () => {
     [currentUser, meeting?.status, postMessageMeetingDetails, setMeeting]
   );
   const stopMeeting = useCallback(
-    (elapsedTime: number) => {
+    (elapsedTime: number, endTime: number) => {
       if (
-        (meeting?.status !== "started" && meeting?.status !== "paused") ||
+        meeting.status === "ended" ||
+        meeting.status === "ready" ||
         !currentUser
       ) {
         return;
       }
-      if (currentUser) {
-        setMeeting((prev) => {
-          if (!prev) {
-            return prev;
+      setMeeting((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        const meeting = { ...prev };
+        meeting.elapsedTime = elapsedTime;
+        meeting.status = "ended";
+        meeting.participants = meeting.participants.map((participant) => {
+          let durration = 0;
+          if (participant.leftAt) {
+            durration =
+              Number(participant.leftAt) -
+              Number(participant.joinedAt) +
+              participant.elapsedTime;
+          } else {
+            durration =
+              endTime - Number(participant.joinedAt) + participant.elapsedTime;
           }
-          const meeting = { ...prev };
-          meeting.elapsedTime = elapsedTime;
-          meeting.status = "ended";
-          meeting.participants = meeting.participants.map((participant) => {
-            let durration = 0;
-            if (participant.timeSpent) {
-              durration = elapsedTime - Number(participant.timeSpent);
-            } else {
-              durration = elapsedTime;
-            }
-
-            const totalCost = (durration / 1000 / 3600) * meeting.costPerHour;
-            return {
-              ...participant,
-              timeSpent: durration,
-              totalCost: totalCost,
-            };
-          });
-          postMessageMeetingDetails(meeting, currentUser);
-          return meeting;
+          const totalCost = (durration / 1000 / 3600) * meeting.costPerHour;
+          return {
+            ...participant,
+            timeSpent: durration,
+            totalCost: totalCost,
+          };
         });
-      }
+        postMessageMeetingDetails(meeting, currentUser);
+        return meeting;
+      });
     },
     [currentUser, meeting?.status, postMessageMeetingDetails, setMeeting]
   );

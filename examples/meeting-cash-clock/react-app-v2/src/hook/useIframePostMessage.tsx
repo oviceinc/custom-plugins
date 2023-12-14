@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { Meeting, OviceClient } from "../context/MeetingContext";
+import { GetParticipantsRequest } from "../page/type";
 
 type CustomPluginEmitToOthersData = {
   source: string;
@@ -24,11 +25,25 @@ export type OviceEmitToRequest = {
 
 export const useIframePostMessage = () => {
   return useCallback(
-    (message: OviceEmitToOthersRequest | OviceEmitToRequest) => {
+    (
+      message:
+        | OviceEmitToOthersRequest
+        | OviceEmitToRequest
+        | GetParticipantsRequest
+    ) => {
       window.parent.postMessage(message, "*");
     },
     []
   );
+};
+
+export const useGetParticipantsRequest = () => {
+  const iframePostMessage = useIframePostMessage();
+  return useCallback(() => {
+    iframePostMessage({
+      type: "ovice_get_participants",
+    });
+  }, [iframePostMessage]);
 };
 
 export const usePostMessageMeetingDetails = () => {
