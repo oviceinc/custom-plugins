@@ -10,6 +10,7 @@
   - [Status Events](#status-events)
   - [Recommanded Initial connection Event](#recommended-initial-connection-events)
   - [Participant Related Events](#participant-related-events)
+  - [Events for Participant Information](#events-for-participant-information)
   - [Real-time Communication Events](#real-time-communication-events)
   - [Event for Event Reflection](#event-for-event-reflection)
 
