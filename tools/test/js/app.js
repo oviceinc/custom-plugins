@@ -24,14 +24,17 @@ function IframeComponent({
   src,
   userId,
   status,
-  host,
+  isHost,
+  isVisitor,
   onLoad,
   onReady,
   onGetParticipants,
-  onEmitToOthers,
-  onEmitTo,
+  onBroadcastMessage,
+  onEmitMessage,
 }) {
   const iframeRef = React.useRef(null);
+  const hostType = isHost ? 'Host' : 'Guest';
+  const visitorType = isVisitor ? 'Visitor' : 'Member';
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -57,11 +60,11 @@ function IframeComponent({
           case 'ovice_get_participants':
             onGetParticipants(userId, iframeRef.current.contentWindow);
             break;
-          case 'ovice_emit_to_others':
-            onEmitToOthers(userId, payload);
+          case 'ovice_broadcast_message':
+            onBroadcastMessage(userId, payload);
             break;
-          case 'ovice_emit_to':
-            onEmitTo(userId, payload, payload.to);
+          case 'ovice_emit_message':
+            onEmitMessage(userId, payload, payload.to);
             break;
           // ... other message types
         }
@@ -72,12 +75,12 @@ function IframeComponent({
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [onReady, onGetParticipants, onEmitToOthers, onEmitTo]);
+  }, [onReady, onGetParticipants, onBroadcastMessage, onEmitMessage]);
 
   return (
     <div className="flex flex-col p-2">
       <div className="font-bold">
-        {host ? 'Host' : 'Guest'} {status} User{userId}
+        {hostType} {visitorType} {status} User{userId}
       </div>
       <iframe
         ref={iframeRef}
@@ -87,32 +90,38 @@ function IframeComponent({
         src={src}
         data-user-id={userId}
         data-status={status}
-        data-host={host.toString()}
+        data-host={isHost.toString()}
         className="border-2 m-2"
       ></iframe>
     </div>
   );
 }
 
+const objectTypes = ['static', 'dynamic'];
+
 function TestApp() {
   const [url, setUrl] = useState(testUrls[0].url);
-  const iframes = mockUsers.map(item => {
+  const [objectType, setObjectType] = useState(objectTypes[0]);
+  const iframes = mockUsers.map((item, index) => {
     return {
       ...item,
       id: `frame${item.userId}`,
       src: url,
+      isHost: objectType === 'dynamic' ? index === 0 : false,
     };
   });
   const [postTargets, setPostTargets] = useState({});
-  const users = iframes.map(item => ({
+  const users = iframes.map((item, index) => ({
     id: item.userId,
     status: item.status,
-    isHost: item.host,
+    isHost: item.isHost,
+    isSelf: false,
+    isVisitor: item.isVisitor,
     name: `user${item.userId}`,
     avatarUrl: '<https://example.com/avatar.jpg>',
     workspaceId: '1',
     objectId: 'object1',
-    objectType: 'static',
+    objectType: objectType,
   }));
 
   // Define handlers for different message types
@@ -126,25 +135,25 @@ function TestApp() {
     iframeWindow.postMessage(
       {
         type: 'ovice_participants',
-        payload: users,
+        payload: users.map(user => ({ ...user, isSelf: userId === user.id })),
       },
       '*'
     );
   };
-  const handleEmitToOthers = (userId, payload) => {
+  const handleBroadcastMessage = (userId, payload) => {
     Object.keys(postTargets).forEach(key => {
       if (key === userId) return;
       postTargets[key].postMessage({
-        type: 'ovice_event_message',
+        type: 'ovice_message',
         payload: payload,
       });
     });
   };
-  const handleEmitTo = (userId, payload, to) => {
+  const handleEmitMessage = (userId, payload, to) => {
     Object.keys(postTargets).forEach(key => {
       if (key !== to) return;
       postTargets[key].postMessage({
-        type: 'ovice_event_message',
+        type: 'ovice_message',
         payload: payload,
       });
     });
@@ -158,10 +167,11 @@ function TestApp() {
           const iframe = postTargets[key];
           if (!iframe) return;
           iframe.postMessage({
-            type: `ovice_${key === user.id ? '' : 'other_'}participant_${
-              user.status
-            }`,
-            payload: user,
+            type: `ovice_participant_${user.status}`,
+            payload: {
+              ...user,
+              isSelf: key.toString() === user.id,
+            },
           });
         });
       });
@@ -176,7 +186,7 @@ function TestApp() {
   useIframeCommunication(iframes);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-300 bg-opacity-40 p-4">
+    <div className="min-h-screen flex flex-col bg-gray-300 bg-opacity-40 p-4">
       <div className="flex items-center gap-2">
         <div className="font-bold">Sample</div>
         <select
@@ -194,6 +204,22 @@ function TestApp() {
             );
           })}
         </select>
+        <div className="font-bold">Object Type</div>
+        <select
+          className="p-2"
+          value={objectType}
+          onChange={e => {
+            setObjectType(e.target.value);
+          }}
+        >
+          {objectTypes.map((item, index) => {
+            return (
+              <option key={index} value={item}>
+                {item}
+              </option>
+            );
+          })}
+        </select>
       </div>
       <div className="flex flex-wrap">
         {iframes.map(iframe => (
@@ -203,8 +229,8 @@ function TestApp() {
             onLoad={handleLoad}
             onReady={handleReady}
             onGetParticipants={handleGetParticipants}
-            onEmitToOthers={handleEmitToOthers}
-            onEmitTo={handleEmitTo}
+            onBroadcastMessage={handleBroadcastMessage}
+            onEmitMessage={handleEmitMessage}
           />
         ))}
       </div>

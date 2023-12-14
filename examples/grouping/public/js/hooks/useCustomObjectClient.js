@@ -2,24 +2,18 @@ const { useState, useRef, useCallback, useEffect } = React;
 
 class Participant {
   constructor(data = {}) {
-    this._id = data.id;
+    this.id = data.id && data.id.toString();
     this.email = data.email;
     this.name = data.name;
     this.objectId = data.objectId;
     this.objectType = data.objectType;
     this.avatarUrl = data.avatarUrl;
-    this._workspaceId = data.workspaceId;
+    this.workspaceId = data.workspaceId && data.workspaceId.toString();
     this.isHost = data.isHost;
     this.isSelf = data.isSelf;
     this.isVisitor = data.isVisitor;
     this.language = data.language;
     this.status = data.status; // joined, subscribed, etc.
-  }
-  get id() {
-    return this._id && this._id.toString();
-  }
-  get workspaceId() {
-    return this._workspaceId && this._workspaceId.toString();
   }
 }
 
@@ -29,10 +23,7 @@ class Message {
     this.event = data.event;
     this.objectId = data.objectId;
     this.message = data.message;
-    this._to = data.to; // Optional, only used for direct messages
-  }
-  get to() {
-    return this._to && this._to.toString();
+    this.to = data.to && data.to.toString(); // Optional, only used for direct messages
   }
 }
 
