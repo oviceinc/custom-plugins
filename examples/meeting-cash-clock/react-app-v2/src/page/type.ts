@@ -14,8 +14,9 @@ export type OvicePayloadType = {
   id: string;
   objectId: string;
   objectType: string;
-  isHost?: boolean;
+  isHost: boolean;
   isSelf: boolean;
+  status: 'joined' | 'subscribed'
 };
 
 type OviceParticipantJoinedEvent = {
@@ -28,6 +29,10 @@ type OviceParticipantLeftEvent = {
   payload: OvicePayloadType;
 };
 
+export type GetParticipantsRequest = {
+  type: 'ovice_get_participants'
+}
+
 type OviceParticipantSubscribedEvent = {
   type: "ovice_participant_subscribed";
   payload: OvicePayloadType;
@@ -37,6 +42,11 @@ type OviceParticipantUnSubscribedEvent = {
   type: "ovice_participant_unsubscribed";
   payload: OvicePayloadType;
 };
+
+type CustomPluginParticipantsEvent = {
+  type: 'ovice_participants'
+  payload: OvicePayloadType[]
+}
 
 type OviceMessageEventPayload = {
   source: string;
@@ -56,4 +66,5 @@ export type OviceEvent =
   | OviceParticipantLeftEvent
   | OviceParticipantUnSubscribedEvent
   | OviceParticipantSubscribedEvent
+  | CustomPluginParticipantsEvent
   | OviceMessageEvent;

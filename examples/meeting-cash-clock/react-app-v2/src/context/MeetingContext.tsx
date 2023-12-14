@@ -1,17 +1,24 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import { OvicePayloadType } from "../page/type";
+import { v4 as uuidv4 } from "uuid";
 
 type MeetingStatus = "ready" | "started" | "ended" | "paused";
 export type Participant = {
   id: string;
   name: string;
-  timeSpent: number | null;
+  owner: boolean;
+  isSelf: boolean;
+  timeSpent: number;
+  elapsedTime: number;
+  joinedAt: number | null;
+  leftAt: number | null;
   totalCost: number | null;
   left: boolean;
 };
 export type Meeting = {
   id: string;
   costPerHour: number;
+  hasOwner: boolean;
   startTime?: number | null;
   elapsedTime?: number | null;
   status: MeetingStatus;
@@ -21,8 +28,8 @@ export type Meeting = {
 export type OviceClient = OvicePayloadType;
 
 interface OnboardingContextValue {
-  meeting: Meeting | undefined;
-  setMeeting: React.Dispatch<React.SetStateAction<Meeting | undefined>>;
+  meeting: Meeting;
+  setMeeting: React.Dispatch<React.SetStateAction<Meeting>>;
   currentUser: OviceClient | undefined;
   setCurrentUser: React.Dispatch<React.SetStateAction<OviceClient | undefined>>;
 }
@@ -42,7 +49,13 @@ export const useMeetingContext = () => {
 export const MeetingContextProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
-  const [meeting, setMeeting] = useState<Meeting | undefined>(undefined);
+  const [meeting, setMeeting] = useState<Meeting>({
+    id: uuidv4(),
+    costPerHour: 0,
+    status: "ready",
+    hasOwner: false,
+    participants: [],
+  });
   const [currentUser, setCurrentUser] = useState<OviceClient | undefined>();
 
   const meetingConext = useMemo(() => {
