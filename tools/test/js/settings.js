@@ -13,26 +13,26 @@ const mockUsers = [
   {
     userId: '1',
     status: 'joined',
-    host: true,
+    isVisitor: false,
   },
   {
     userId: '2',
     status: 'joined',
-    host: false,
+    isVisitor: false,
   },
   {
     userId: '3',
     status: 'subscribed',
-    host: false,
+    isVisitor: true,
   },
   {
     userId: '4',
     status: 'subscribed',
-    host: false,
+    isVisitor: true,
   },
   {
     userId: '5',
     status: 'subscribed',
-    host: false,
+    isVisitor: true,
   },
 ];
