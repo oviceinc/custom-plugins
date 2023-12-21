@@ -1,0 +1,22 @@
+# .gitignore
+
+# Ignore node_modules directory
+node_modules/
+
+# Ignore environment variables
+.env
+
+soundtrack/
+# Ignore logs
+*.log
+
+# Ignore the build directory
+/dist
+
+# Ignore IDE specific files
+.idea/
+.vscode/
+*.iml
+
+# Ignore npm debug logs
+npm-debug.log*

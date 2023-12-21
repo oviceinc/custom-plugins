@@ -1,5 +1,5 @@
 import { useGlobalAudioPlayer } from "react-use-audio-player";
-import { MusicPlayer } from "../component/MusicPlayer";
+import { MusicPlayer } from "../component/v1/MusicPlayer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Stack } from "@mui/material";
 
