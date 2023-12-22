@@ -6,12 +6,12 @@ function useGrouping(users, broadcast) {
 
   const handleGrouping = useCallback(() => {
     const shuffledUsers = [...users].sort(() => Math.random() - 0.5);
-    const groupedUsers = [];
-    const groupUserLimit = Math.ceil(users.length / groupSize);
-    for (let i = 0; i < users.length; i += groupUserLimit) {
-      const group = shuffledUsers.slice(i, i + groupUserLimit);
-      groupedUsers.push(group);
-    }
+    const groupedUsers = Array.from({ length: groupSize }, () => []);
+
+    shuffledUsers.forEach((user, index) => {
+      groupedUsers[index % groupSize].push(user);
+    });
+
     broadcast('grouping', { groups: groupedUsers });
     setGroups(groupedUsers);
   }, [users, groupSize, broadcast]);

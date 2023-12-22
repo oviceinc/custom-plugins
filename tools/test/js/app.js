@@ -28,6 +28,8 @@ function IframeComponent({
   isVisitor,
   onLoad,
   onReady,
+  onGetData,
+  onSaveAndEmitData,
   onGetParticipants,
   onBroadcastMessage,
   onEmitMessage,
@@ -59,6 +61,20 @@ function IframeComponent({
             break;
           case 'ovice_get_participants':
             onGetParticipants(userId, iframeRef.current.contentWindow);
+            break;
+          case 'ovice_get_data':
+            onGetData(userId, iframeRef.current.contentWindow);
+            break;
+          case 'ovice_save_and_emit_data':
+            try {
+              onSaveAndEmitData(
+                userId,
+                iframeRef.current.contentWindow,
+                payload
+              );
+            } catch (error) {
+              throw error;
+            }
             break;
           case 'ovice_broadcast_message':
             onBroadcastMessage(userId, payload);
@@ -101,6 +117,7 @@ const objectTypes = ['static', 'dynamic'];
 
 function TestApp() {
   const [url, setUrl] = useState(testUrls[0].url);
+  const [data, setData] = useState({});
   const [objectType, setObjectType] = useState(objectTypes[0]);
   const iframes = mockUsers.map((item, index) => {
     return {
@@ -130,6 +147,36 @@ function TestApp() {
   };
   const handleReady = (userId, iframeWindow) => {
     iframeWindow.postMessage({ type: 'ovice_confirmation' }, '*');
+  };
+  const handleGetData = (userId, iframeWindow) => {
+    iframeWindow.postMessage(
+      {
+        type: 'ovice_saved_data',
+        payload: data,
+      },
+      '*'
+    );
+  };
+  const handleSaveAndEmitData = (userId, iframeWindow, payload) => {
+    setData(payload);
+    Object.keys(postTargets).forEach(key => {
+      if (key === userId) {
+        const date = new Date();
+        const timestamp = Math.floor(date.getTime() / 1000);
+        postTargets[key].postMessage({
+          type: 'ovice_data_saved_success',
+          payload: {
+            ...payload,
+            updated_at: timestamp,
+          },
+        });
+      } else {
+        postTargets[key].postMessage({
+          type: 'ovice_shared_data',
+          payload: payload,
+        });
+      }
+    });
   };
   const handleGetParticipants = (userId, iframeWindow) => {
     iframeWindow.postMessage(
@@ -228,6 +275,8 @@ function TestApp() {
             {...iframe}
             onLoad={handleLoad}
             onReady={handleReady}
+            onGetData={handleGetData}
+            onSaveAndEmitData={handleSaveAndEmitData}
             onGetParticipants={handleGetParticipants}
             onBroadcastMessage={handleBroadcastMessage}
             onEmitMessage={handleEmitMessage}

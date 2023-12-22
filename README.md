@@ -13,6 +13,7 @@
   - [Events for Participant Information](#events-for-participant-information)
   - [Real-time Communication Events](#real-time-communication-events)
   - [Event for Event Reflection](#event-for-event-reflection)
+  - [Data Management Events](#data-management-events)
 
 ## Overview
 
@@ -64,9 +65,9 @@ https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-ae
 
 Events related to establishing the initial connection with ovice:
 
-| Event Name                                                                                | Triggered By  |
-| :---------------------------------------------------------------------------------------- | :------------ |
-| [ovice_get_participants](./docs/technical_details_for_developers.md#ovice_get_participants)          | Client Domain |
+| Event Name                                                                                  | Triggered By  |
+| :------------------------------------------------------------------------------------------ | :------------ |
+| [ovice_get_participants](./docs/technical_details_for_developers.md#ovice_get_participants) | Client Domain |
 
 ### Participant Related Events
 
@@ -103,3 +104,15 @@ An event meant to reflect messages between participants:
 | Event Name                                                                | Triggered By |
 | :------------------------------------------------------------------------ | :----------- |
 | [ovice_message](./docs/technical_details_for_developers.md#ovice_message) | ovice Domain |
+
+### Data Management Events
+
+Events in the ovice domain related to data management and storage actions:
+
+| Event Name                                                                                      | Triggered By  |
+| :---------------------------------------------------------------------------------------------- | :------------ |
+| [ovice_get_data](./docs/technical_details_for_developers.md#ovice_get_data)                     | Client Domain |
+| [ovice_saved_data](./docs/technical_details_for_developers.md#ovice_saved_data)                 | ovice Domain  |
+| [ovice_save_and_emit_data](./docs/technical_details_for_developers.md#ovice_save_and_emit_data) | Client Domain |
+| [ovice_shared_data](./docs/technical_details_for_developers.md#ovice_shared_data)               | ovice Domain  |
+| [ovice_data_saved_success](./docs/technical_details_for_developers.md#ovice_data_saved_success) | ovice Domain  |

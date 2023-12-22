@@ -11,6 +11,7 @@
   - [Participant Information Retrieval Events](#participant-information-retrieval-events)
   - [Real-time Communication Events](#real-time-communication-events)
   - [Reflected Event](#reflected-event)
+  - [Data Management Events](#data-management-events)
 - [Additional Information for Status:](#additional-information-for-status)
 
 ## Overview
@@ -389,6 +390,119 @@ sequenceDiagram
         "key2": 42,
         "key3": ["item1", "item2"]
       }
+    }
+  }
+  ```
+
+### Data Management Events
+
+#### Events Overview
+
+```mermaid
+sequenceDiagram
+    participant UserA
+    participant Iframe
+    participant Client Server
+    participant myself
+
+    Note over UserA, myself: Initial connection event
+
+    myself->>+Client Server: send Data
+    Client Server->>+Iframe: parent.postMessage(ovice_get_data)
+    Iframe->>-Client Server: emit(ovice_saved_data)
+    Client Server->>-myself: response Data
+    Note over Client Server,Iframe: Request data transmission to obtain the latest data.
+
+    myself->>+Client Server: send Data
+    Client Server->>+Iframe: parent.postMessage(ovice_save_and_emit_data)
+    Iframe->>UserA: emit(ovice_shared_data)
+    Iframe->>-Client Server: emit(ovice_data_saved_success)
+    Client Server->>-myself: response Data
+    Note over Client Server,Iframe: Store the data and send data updates to users <br />who have access to the data.
+```
+
+#### `ovice_get_data`
+
+- **Description:** Triggered when a client's domain requests the latest data associated with an object.
+
+  ```json
+  { "type": "ovice_get_data" }
+  ```
+
+#### `ovice_saved_data`
+
+- **Description:** Signifies that the requested data has been successfully retrieved and saved, confirming the completion of the data retrieval process.
+
+- **Payload:**
+
+  - **payload** (object): Data stored in the object
+    - **Note:** The payload size for **`payload`** is limited to 500KB.
+
+  ```json
+  {
+    "type": "ovice_saved_data",
+    "payload": {
+      "value1": "12",
+      "value2": "test"
+    }
+  }
+  ```
+
+#### `ovice_save_and_emit_data`
+
+- **Description:** Instructs the system to save the provided data and simultaneously emit an update to all relevant users who are subscribed to or monitoring the data.
+
+- **Payload:**
+
+  - **payload** (object): Data stored in the object
+    - **Note:** The payload size for **`payload`** is limited to 500KB.
+
+  ```json
+  {
+    "type": "ovice_save_and_emit_data",
+    "payload": {
+      "value1": "12",
+      "value2": "test"
+    }
+  }
+  ```
+
+#### `ovice_shared_data`
+
+- **Description:** Indicates that the data has been shared or made available to specific users who are part of the data-sharing process or have subscribed to receive updates.
+
+- **Payload:**
+
+  - **payload** (object): Data stored in the object
+    - **Note:** The payload size for **`payload`** is limited to 500KB.
+
+  ```json
+  {
+    "type": "ovice_shared_data",
+    "payload": {
+      "value1": "12",
+      "value2": "test"
+    }
+  }
+  ```
+
+#### `ovice_data_saved_success`
+
+- **Description:** Confirms that the data has been successfully saved in the system, ensuring that the data storage process is complete and reliable.
+
+- **Payload:**
+
+  - **payload** (object): Data stored in the object
+    - **Note:** The payload size for **`payload`** is limited to 500KB.
+  - **updated_at** (number, optional): Timestamp of updated date and time.
+
+  ```json
+  {
+    "type": "ovice_data_saved_success",
+    "payload": {
+      "updated_at": 1703214224,
+      "value1": "12",
+      "value2": "test"
     }
   }
   ```
