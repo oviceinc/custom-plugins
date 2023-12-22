@@ -30,6 +30,7 @@ Here are some examples of plugins you can use as a reference for developing your
 | [Sound Track](./examples/soundtrack/)               | A plugin to play background music or soundtracks in the space.                    |
 | [Fast Press Game](./examples/fast-press-game/)      | This is a quick press game for multiple people that can be used for quizzes, etc. |
 | [Grouping](./examples/grouping/)                    | This is a tool that allows you to efficiently divide participants into groups.    |
+| [Memo](./examples/memo/)                            | A simple memo app.                                                                |
 
 ## Understanding Events
 
