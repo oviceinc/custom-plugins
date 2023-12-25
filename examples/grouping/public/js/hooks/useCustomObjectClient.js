@@ -4,7 +4,7 @@ class Participant {
   constructor(data = {}) {
     this.id = data.id && data.id.toString();
     this.email = data.email;
-    this.name = data.name;
+    this.name = data.name && data.name.replace(/\s+/g, ' ');
     this.objectId = data.objectId && data.objectId.toString();
     this.objectType = data.objectType;
     this.avatarUrl = data.avatarUrl;
@@ -199,9 +199,9 @@ function useCustomObjectClient() {
       setLastMessage(event.data);
       switch (eventInstance.type) {
         case 'ovice_participants':
-          const participants = eventInstance.payload.map(
-            p => new Participant(p)
-          );
+          const participants = eventInstance.payload
+            .map(p => (p.id && p.workspaceId ? new Participant(p) : null))
+            .filter(v => v);
           setUsers(participants);
           setUser(
             participants.find(participant => {
