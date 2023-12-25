@@ -1,6 +1,12 @@
-const { useEffect } = React;
+const { useEffect, useState } = React;
+const cc = classNames;
 
 function GroupingApp() {
+  {
+    /* Commented out because clipboard is not supported at this time. */
+  }
+  // const copyToClipboard = useCopyToClipboard();
+
   const {
     user,
     users,
@@ -8,42 +14,117 @@ function GroupingApp() {
     isStaticObject,
     isJoined,
     broadcast,
-    onEvent,
     onMessageEvent,
   } = useCustomObjectClient();
 
-  const { groupSize, setGroupSize, groups, setGroups, handleGrouping } =
-    useGrouping(users, broadcast);
+  const {
+    groupSize,
+    groupSizeList,
+    isShuffling,
+    setGroupSize,
+    groups,
+    handleGrouping,
+  } = useGrouping(users, broadcast, onMessageEvent);
 
   const isGroupMaster = isHost || (isStaticObject && isJoined);
 
-  useEffect(() => {
-    onEvent(event => {
-      console.log(event);
-    });
-    onMessageEvent(event => {
-      if (event.event && event.event === 'grouping' && event.message) {
-        setGroups(event.message.groups);
-      }
-    });
-  }, [onEvent, onMessageEvent, setGroups]);
+  const formatUserName = userName => {
+    if (!userName) return 'unknown';
+    return userName;
+  };
+
+  console.log(groups);
+
+  {
+    /* Commented out because clipboard is not supported at this time. */
+  }
+  // const [copyStatus, setCopyStatus] = useState(null);
+
+  {
+    /* Commented out because clipboard is not supported at this time. */
+  }
+  // const handleGroupsCopyClick = groups => {
+  //   if (!groups) return;
+  //   const text = groups
+  //     .map((group, index) => {
+  //       const groupUsersList = group
+  //         .map(member => {
+  //           return `- ${member.name || 'unknown'}`;
+  //         })
+  //         .join('\n');
+  //       return `[ Group ${index + 1} ]\n${groupUsersList}`;
+  //     })
+  //     .join('\n\n');
+  //   if (copyToClipboard(text)) {
+  //     setCopyStatus('Success Copy!');
+  //   } else {
+  //     setCopyStatus('Failed Copy!');
+  //   }
+  // };
+
+  {
+    /* Commented out because clipboard is not supported at this time. */
+  }
+  // const handleGroupUsersCopyClick = (groupName, groupUsers) => {
+  //   if (!groupName || !groupUsers) return;
+  //   const groupUsersList = groupUsers
+  //     .map(member => {
+  //       return `- ${member.name || 'unknown'}`;
+  //     })
+  //     .join('\n');
+  //   const text = `[ ${groupName} ]\n${groupUsersList}`;
+  //   if (copyToClipboard(text)) {
+  //     setCopyStatus('Success Copy!');
+  //   } else {
+  //     setCopyStatus('Failed Copy!');
+  //   }
+  // };
+
+  {
+    /* Commented out because clipboard is not supported at this time. */
+  }
+  // useEffect(() => {
+  //   if (!copyStatus) return;
+  //   const t = setTimeout(() => {
+  //     setCopyStatus(null);
+  //   }, 1000);
+  //   return () => {
+  //     if (!t) return;
+  //     clearTimeout(t);
+  //   };
+  // }, [copyStatus]);
 
   return (
-    <div className="flex flex-col gap-2 select-none">
+    <div className="min-h-screen flex flex-col gap-2 select-none relative">
+      <h1 className="text-xl font-bold">Grouping</h1>
       {isGroupMaster && (
         <div>
-          <h2 className="text-xl font-bold">Separate Groups Count</h2>
-          <div className="flex">
-            <input
-              type="number"
-              id="groupSize"
+          <h2 className="text-lg font-bold">Separate Groups Count</h2>
+          <div className="flex gap-2">
+            <select
+              className="w-20 text-lg font-bold rounded border"
               value={groupSize}
               onChange={e => setGroupSize(parseInt(e.target.value))}
-              className="border border-gray-400 rounded px-2 py-1"
-            />
+            >
+              {groupSizeList &&
+                groupSizeList.map(size => {
+                  return (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  );
+                })}
+            </select>
             <button
               onClick={handleGrouping}
-              className="flex bg-blue-500 hover:bg-blue-700 text-white font-bold p-2 rounded"
+              disabled={isShuffling}
+              className={cc([
+                'flex font-bold p-2 rounded',
+                {
+                  'bg-blue-500 hover:bg-blue-700 text-white': !isShuffling,
+                  'bg-gray-400 text-white': isShuffling,
+                },
+              ])}
             >
               <span className="material-symbols-outlined">shuffle</span>
             </button>
@@ -51,38 +132,81 @@ function GroupingApp() {
         </div>
       )}
       <div>
-        <h2 className="text-xl font-bold">Grouping Result</h2>
-        <div className="select-text">
+        <div className="flex gap-1">
+          <div>
+            <h2 className="text-lg font-bold">Result</h2>
+          </div>
+          {/* Commented out because clipboard is not supported at this time. */}
+          {/* <div className="text-sm">
+            <button
+              onClick={() => {
+                handleGroupsCopyClick(groups);
+              }}
+            >
+              <span className="material-symbols-outlined text-base">
+                content_copy
+              </span>
+            </button>
+          </div> */}
+        </div>
+
+        <div className="select-text grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4">
           {groups.map((group, index) => {
+            if (!group.length) return null;
             const isMyGroup = user.id && group.some(v => v.id === user.id);
             return (
-              <div key={index} className="mb-8">
-                <h3
-                  className={classNames([
-                    'text-lg font-bold mb-2',
-                    {
-                      'text-blue-600': isMyGroup,
-                      'text-black': !isMyGroup,
-                    },
-                  ])}
-                >
-                  [ Group {index + 1} ]
-                </h3>
+              <div
+                key={index}
+                className={cc([
+                  'border m-1 p-2 shadow',
+                  {
+                    'bg-gray-50': !isShuffling,
+                    'bg-gray-300': isShuffling,
+                  },
+                ])}
+              >
+                <div className="flex gap-1">
+                  <div>
+                    <h3
+                      className={cc([
+                        'text-lg font-bold mb-2',
+                        {
+                          'text-blue-600': isMyGroup && !isShuffling,
+                          'text-black': !isMyGroup || isShuffling,
+                        },
+                      ])}
+                    >
+                      [ Group {index + 1} ]
+                    </h3>
+                  </div>
+                  {/* Commented out because clipboard is not supported at this time. */}
+                  {/* <div className="text-sm select-none hidden">
+                    <button
+                      onClick={() => {
+                        handleGroupUsersCopyClick(`Group ${index + 1}`, group);
+                      }}
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        content_copy
+                      </span>
+                    </button>
+                  </div> */}
+                </div>
                 <ul>
                   {group.map(v => {
                     const isMyself = user.id && v.id === user.id;
                     return (
                       <li
                         key={v.id}
-                        className={classNames([
-                          'text-lg mb-2',
+                        className={cc([
+                          'mb-0.5 truncate',
                           {
-                            'font-bold text-blue-600': isMyself,
-                            'text-black': !isMyself,
+                            'font-bold text-blue-600': isMyself && !isShuffling,
+                            'text-black': !isMyself || isShuffling,
                           },
                         ])}
                       >
-                        {v.name}
+                        {formatUserName(v.name)}
                       </li>
                     );
                   })}
@@ -92,6 +216,20 @@ function GroupingApp() {
           })}
         </div>
       </div>
+      {/* Commented out because clipboard is not supported at this time. */}
+      {/* {copyStatus && (
+        <div
+          className={cc([
+            'absolute bottom-1 right-1 z-9 p-1]',
+            {
+              'text-green-500': copyStatus === 'Success Copy!',
+              'text-red-500': copyStatus === 'Failed Copy!',
+            },
+          ])}
+        >
+          {copyStatus}
+        </div>
+      )} */}
     </div>
   );
 }

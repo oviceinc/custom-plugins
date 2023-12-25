@@ -7,6 +7,10 @@ const testUrls = [
     name: 'Grouping',
     url: '../../examples/grouping/public/',
   },
+  {
+    name: 'Memo',
+    url: '../../examples/memo/public/',
+  },
 ];
 
 const mockUsers = [
@@ -23,15 +27,25 @@ const mockUsers = [
   {
     userId: '3',
     status: 'subscribed',
-    isVisitor: true,
+    isVisitor: false,
   },
   {
     userId: '4',
-    status: 'subscribed',
+    status: 'joined',
     isVisitor: true,
   },
   {
     userId: '5',
+    status: 'subscribed',
+    isVisitor: true,
+  },
+  {
+    userId: '6',
+    status: 'subscribed',
+    isVisitor: true,
+  },
+  {
+    userId: '7',
     status: 'subscribed',
     isVisitor: true,
   },
