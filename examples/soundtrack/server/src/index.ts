@@ -3,8 +3,13 @@ import multer from "multer";
 import AWS from "aws-sdk";
 import dotenv from "dotenv";
 import { v4 as uuidv4 } from "uuid";
+import cors from "cors";
 import path from "path";
+import NodeID3 from "node-id3";
+import request from "request";
+import { get } from "https";
 
+request.defaults({ encoding: null });
 const router = express.Router();
 
 const tokenGuard = (req, res, next) => {
@@ -47,7 +52,7 @@ AWS.config.update({
 const s3 = new AWS.S3();
 
 // API to accept single file upload and objectId
-router.post("/upload", upload.single("file"), async (req, res) => {
+router.post("/songs/upload", upload.single("file"), async (req, res) => {
   const { objectId } = req.body;
   const file = req.file;
 
@@ -78,9 +83,9 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       message: "File uploaded successfully",
       data: {
         objectId: objectId,
-        fileId: fileId,
-        fileName: file.originalname,
-        fileUrl: data.Location,
+        id: fileId,
+        name: file.originalname,
+        url: data.Location,
       },
     });
   } catch (error) {
@@ -89,8 +94,45 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
+function urlToBuffer(url: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const data: Uint8Array[] = [];
+    get(url, (res) => {
+      res
+        .on("data", (chunk: Uint8Array) => {
+          data.push(chunk);
+        })
+        .on("end", () => {
+          resolve(Buffer.concat(data));
+        })
+        .on("error", (err) => {
+          reject(err);
+        });
+    });
+  });
+}
+
+function getImage(
+  image:
+    | string
+    | {
+        mime: string;
+        type: {
+          id: number;
+          name?: string;
+        };
+        description: string;
+        imageBuffer: Buffer;
+      }
+) {
+  if (typeof image === "string") {
+    return image;
+  }
+  return image.imageBuffer;
+}
+
 // API to return list of files related to given objectId
-router.get("/files/:objectId", (req, res) => {
+router.get("/songs/:objectId", async (req, res) => {
   const { objectId } = req.params;
 
   const params = {
@@ -98,31 +140,48 @@ router.get("/files/:objectId", (req, res) => {
     Prefix: objectId,
   };
 
-  s3.listObjectsV2(params, (err, data) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "Failed to retrieve files" });
-    }
-    const files = data.Contents.map((file) => {
-      const urlParams = { Bucket: process.env.AWS_BUCKET_NAME, Key: file.Key };
-      const url = s3.getSignedUrl("getObject", urlParams);
-      const parts = file.Key.split("/");
-      const fileId = parts[1]; // Extract the fileId from file.Key
-      const fileName = path.basename(file.Key); // Extract the filename from file.Key
+  try {
+    const listObjects = await s3.listObjectsV2(params).promise();
+    const songs: AWS.S3.ObjectList = listObjects.Contents;
+    const result = await Promise.all(
+      songs.map(async (song) => {
+        const urlParams = {
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: song.Key,
+        };
+        const url = `https://s3.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_BUCKET_NAME}/${song.Key}`;
+        const parts = song.Key.split("/");
+        const fileId = parts[1]; // Extract the fileId from file.Key
+        const fileName = path.basename(song.Key); // Extract the filename from file.Key
+        let tags: NodeID3.Tags = {};
+        try {
+          const buffer = await urlToBuffer(url);
+          tags = NodeID3.read(buffer);
+        } catch (error) {
+          console.log(error);
+        }
 
-      return {
-        fileId: fileId,
-        fileName: fileName,
-        fileUrl: url,
-      };
-    });
-    return res.json({ files });
-  });
+        return {
+          id: fileId,
+          name: fileName,
+          url,
+          title: tags.title ?? undefined,
+          artist: tags.artist ?? undefined,
+          image: tags.image ? getImage(tags.image) : undefined,
+        };
+      })
+    );
+
+    return res.json({ songs: result });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Failed to retrieve files" });
+  }
 });
 
 // API to delete a file from S3 by objectId and file name
 
-router.delete("/files/:objectId/:id/:name", (req, res) => {
+router.delete("/songs/:objectId/:id/:name", (req, res) => {
   const { objectId, id, name } = req.params;
 
   const params: AWS.S3.DeleteObjectRequest = {
@@ -138,6 +197,7 @@ router.delete("/files/:objectId/:id/:name", (req, res) => {
   });
 });
 
+app.use(cors());
 app.use("/api/v1", tokenGuard, router);
 app.listen(process.env.PORT, () => {
   console.log("Server listening on port", process.env.PORT);

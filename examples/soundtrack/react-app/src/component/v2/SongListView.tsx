@@ -1,36 +1,40 @@
 import { Divider } from "@mui/material";
 import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
-import { FixedSizeList, ListChildComponentProps } from "react-window";
 import { SongListItemView } from "./SongListItemView";
+import List from "@mui/material/List";
+import React from "react";
+import { Song } from "../../hooks/api";
 
-const renderRow = (props: ListChildComponentProps) => {
-  const { index, data, } = props;
-
-  return (
-    <>
-      <ListItem key={index} component="div" disablePadding>
-        <ListItemButton>
-          <SongListItemView name="Let go" artist="Hani barkallah" onPlay={console.log} onRemove={console.log} />
-        </ListItemButton>
-      </ListItem>
-      <Divider />
-    </>
-  );
+export type SongListViewProps = {
+  songs: Song[];
+  onPlaySong: (song: Song) => void;
+  onRemoveSong: (song: Song) => void;
+  loading?: boolean;
 };
-type SongListViewProps = {
-  items: string[];
-};
-export const SongListView = ({ items }: SongListViewProps) => {
+export const SongListView = ({
+  songs,
+  onPlaySong,
+  onRemoveSong,
+  loading,
+}: SongListViewProps) => {
   return (
-    <FixedSizeList
-      height={300}
-      width={"100%"}
-      itemCount={items.length}
-      itemData={items}
-      itemSize={35}
-    >
-      {renderRow}
-    </FixedSizeList>
+    <List>
+      {songs.map((song) => (
+        <React.Fragment key={song.id}>
+          <ListItem component="div" disablePadding>
+            <ListItemButton>
+              <SongListItemView
+                name={song.title ?? song.name}
+                artist={song.artist ?? "Unknown"}
+                onPlay={() => onPlaySong(song)}
+                onRemove={() => onRemoveSong(song)}
+              />
+            </ListItemButton>
+          </ListItem>
+          <Divider />
+        </React.Fragment>
+      ))}
+    </List>
   );
 };

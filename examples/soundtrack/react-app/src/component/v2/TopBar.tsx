@@ -1,17 +1,21 @@
-import { Box, IconButton, Stack } from "@mui/material";
+import { Box, IconButton, Stack, Typography } from "@mui/material";
 import { BackArrow, MenuList } from "../icons";
 
 type TopBarProps = {
   onBack?: () => void;
   onMenu?: () => void;
+  title?: string;
 };
-export const TopBar = ({ onBack, onMenu }: TopBarProps) => {
+export const TopBar = ({ title, onBack, onMenu }: TopBarProps) => {
   return (
     <Box>
       {onBack && (
-        <IconButton onClick={onBack}>
-          <BackArrow />
-        </IconButton>
+        <Stack gap={1} flexDirection={"row"} alignItems={"center"}>
+          <IconButton onClick={onBack}>
+            <BackArrow />
+          </IconButton>
+          {title && <Typography variant="subtitle1">{title}</Typography>}
+        </Stack>
       )}
       {onMenu && (
         <IconButton sx={{ float: "right" }} onClick={onMenu}>

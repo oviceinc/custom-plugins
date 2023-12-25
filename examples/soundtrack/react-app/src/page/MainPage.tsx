@@ -1,36 +1,36 @@
-import { Stack } from "@mui/material";
-import { TopBar } from "../component/v2/TopBar";
-import { useCallback, useState } from "react";
-import { PlayerPage } from "./PlayerPage";
-import { FileUploadPage } from "./FileUploadPage";
+import { useSoundTrackContext } from "../context";
+import { useMessageEventListener } from "../hooks/useMessageEventListener";
+import { useCallback } from "react";
+import { SoundtrackPage } from "./SoundtrackPage";
+import { Typography, Stack } from "@mui/material";
 
-type Pages = "upload" | "player";
 export const MainPage = () => {
-  const [page, setPage] = useState<Pages>("player");
-
-  const onBack = useCallback(() => {
-    setPage("player");
-  }, []);
-
-  const onMenu = useCallback(() => {
-    // setPage("upload");
-  }, []);
-
-  const onUpload = useCallback(() => {
-    setPage("upload");
-  }, []);
-
-  return (
-    <Stack spacing={4} paddingTop={4} paddingLeft={3} paddingRight={3}>
-      <TopBar
-        onBack={page !== "player" ? onBack : undefined}
-        onMenu={page === "player" ? onMenu : undefined}
-      />
-      {page === "player" ? (
-        <PlayerPage onUpload={onUpload} />
-      ) : (
-        <FileUploadPage />
-      )}
-    </Stack>
+  const { objectId, setObjectId } = useSoundTrackContext();
+  useMessageEventListener(
+    useCallback(
+      (event: MessageEvent) => {
+        if (event.data.type === "ovice_participants") {
+          const objectId = event.data.participants[0].objectId;
+          setObjectId(objectId);
+        }
+      },
+      [setObjectId]
+    )
   );
+
+  if (!objectId) {
+    return (
+      <Stack
+        alignItems={"center"}
+        justifyContent={"center"}
+        sx={{ height: "100vh" }}
+      >
+        <Typography textAlign={"center"} variant="h5">
+          Please connect to object
+        </Typography>
+      </Stack>
+    );
+  }
+
+  return <SoundtrackPage />;
 };

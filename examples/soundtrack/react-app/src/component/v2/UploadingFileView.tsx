@@ -4,9 +4,11 @@ import DoneIcon from "@mui/icons-material/Done";
 
 type UploadingFileViewProps = {
   name: string;
-  progressText: string;
-  progress: number;
-  onRemove: () => void;
+  progressText?: string;
+  progress?: number;
+  completed?: boolean;
+  loading?: boolean;
+  onRemove?: () => void;
 };
 
 export const UploadingFileView = ({
@@ -14,6 +16,8 @@ export const UploadingFileView = ({
   onRemove,
   progress,
   progressText,
+  loading,
+  completed,
 }: UploadingFileViewProps) => {
   return (
     <Stack
@@ -29,9 +33,11 @@ export const UploadingFileView = ({
         <Typography noWrap variant="subtitle1">
           {name}
         </Typography>
-        <IconButton onClick={onRemove}>
-          <Trash color="#0F5987" />
-        </IconButton>
+        {onRemove && (
+          <IconButton disabled={loading} onClick={onRemove}>
+            <Trash color="#0F5987" />
+          </IconButton>
+        )}
       </Stack>
       <Stack
         flexDirection={"row"}
@@ -41,8 +47,8 @@ export const UploadingFileView = ({
         <Typography variant="subtitle1" color={"gray"}>
           {progressText}
         </Typography>
-        <Stack flexDirection={'row'} alignItems={'center'}>
-          {progress === 100 ? (
+        <Stack flexDirection={"row"} alignItems={"center"}>
+          {!completed ? (
             <>
               <Waiting />
               <Typography variant="subtitle1" color={"gray"}>
@@ -64,7 +70,7 @@ export const UploadingFileView = ({
           )}
         </Stack>
       </Stack>
-      {progress > 0 && (
+      {Number(progress) > 0 && !completed && (
         <LinearProgress
           sx={{ height: 10, borderRadius: "20px" }}
           variant="determinate"

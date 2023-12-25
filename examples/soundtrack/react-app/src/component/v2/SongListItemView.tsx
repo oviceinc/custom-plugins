@@ -1,17 +1,19 @@
 import { IconButton, Stack, Typography } from "@mui/material";
 import { Play, Trash } from "../icons";
 
-type SongListItemViewProps = {
+export type SongListItemViewProps = {
   name: string;
   artist: string;
   onPlay?: () => void;
   onRemove?: () => void;
+  loading?: boolean;
 };
 export const SongListItemView = ({
   name,
   artist,
   onPlay,
   onRemove,
+  loading,
 }: SongListItemViewProps) => {
   return (
     <Stack
@@ -33,7 +35,7 @@ export const SongListItemView = ({
         <IconButton onClick={onPlay}>
           <Play />
         </IconButton>
-        <IconButton onClick={onRemove}>
+        <IconButton disabled={loading} onClick={onRemove}>
           <Trash />
         </IconButton>
       </Stack>
