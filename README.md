@@ -1,7 +1,5 @@
 # Custom Plugins for ovice
 
-![Sound Track](./asset/sound_track.png)
-
 ## Contents
 
 - [Overview](#overview)
@@ -42,25 +40,25 @@ These events notify about the status of users interacting with objects within ov
 
 User is within the range of the object but not linked.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/55e5ed76-7495-4502-93db-ab8d5f509ad1
+![subscribed](./asset/subscribed.gif)
 
 #### `joined`
 
 User is linked to the object.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/f7c9ea47-356f-4917-8563-0425441ec2c0
+![joined](./asset/joined.gif)
 
 #### `left`
 
 User was linked but left the object.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/e35fd892-ac83-4a41-9560-fe4c0edf50a4
+![left](./asset/left.gif)
 
 #### `unsubscribed`
 
 User was linked or within the range of the object but moved out of range.
 
-https://github.com/oviceinc/custom-plugins/assets/15701307/548a1c05-53cf-46d2-aeb1-1aaafe070732
+![unsubscribed](./asset/unsubscribed.gif)
 
 ### Recommended Initial connection Events
 
