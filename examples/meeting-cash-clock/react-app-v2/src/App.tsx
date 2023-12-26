@@ -6,13 +6,15 @@ import "@fontsource/roboto/700.css";
 import MeetingCashClock from "./page/MeetingCashClock";
 import { Container } from "./components/Container";
 import { MeetingContextProvider } from "./context/MeetingContext";
+import { MeetingPage } from "./page/v2/MeetingPage";
 
 function App() {
   return (
     <div className="App">
       <MeetingContextProvider>
+        {/* <MeetingCashClock /> */}
         <Container>
-          <MeetingCashClock />
+          <MeetingPage />
         </Container>
       </MeetingContextProvider>
     </div>
