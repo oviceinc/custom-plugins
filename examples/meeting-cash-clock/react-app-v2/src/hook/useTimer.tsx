@@ -18,18 +18,16 @@ export const useTimer = () => {
   } = useMeetingTimerAction();
 
   useEffect(() => {
-    if (isRunning) {
-      intervalRef.current = setInterval(() => {
+    if (!isRunning) { return }
+    const interval = setInterval(() => {
         const now = Date.now();
         const newElapsedTime = elapsedTime + now - startTime;
         setElapsedTime(newElapsedTime);
         setStartTime(now);
       }, 1000);
-    } else {
-      clearInterval(intervalRef.current!);
-    }
+    } 
 
-    return () => clearInterval(intervalRef.current!);
+    return () => clearInterval(interval);
   }, [isRunning, elapsedTime, startTime]);
 
   const handleStart = useCallback(() => {
