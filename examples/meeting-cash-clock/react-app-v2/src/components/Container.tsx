@@ -7,13 +7,15 @@ export const Container = ({ children }: ContainerProps) => {
   return (
     <Stack
       justifyContent={"center"}
+      alignItems={"center"}
       sx={{
-        position: "absolute",
-        backgroundColor: "white",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        // position: "absolute",
+        backgroundColor: "#F9F9F9",
+        // top: 0,
+        // left: 0,
+        // right: 0,
+        // bottom: 0,
+        minHeight: "100vh"
       }}
     >
       {children}
