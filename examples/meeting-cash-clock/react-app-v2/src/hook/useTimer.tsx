@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMeetingTimerAction } from "./useMeetingTimerAction";
 
 export const useTimer = () => {
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -18,17 +17,17 @@ export const useTimer = () => {
   } = useMeetingTimerAction();
 
   useEffect(() => {
-    if (!isRunning) { return }
+    if (!isRunning) {
+      return;
+    }
     const interval = setInterval(() => {
-        const now = Date.now();
-        const newElapsedTime = elapsedTime + now - startTime;
-        setElapsedTime(newElapsedTime);
-        setStartTime(now);
-      }, 1000);
-    } 
-
+      const now = Date.now();
+      const newElapsedTime = elapsedTime + now - startTime;
+      setElapsedTime(newElapsedTime);
+      setStartTime(now);
+    }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning, elapsedTime, startTime]);
+  }, [elapsedTime, isRunning, startTime])
 
   const handleStart = useCallback(() => {
     if (!isRunning) {
