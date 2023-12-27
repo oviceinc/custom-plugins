@@ -1,7 +1,7 @@
 import { Typography } from "@mui/material";
 import { Box } from "./Box";
 
-export const TotalAmount = ({ total, otherTotal }: { total: number, otherTotal: number  }) => {
+export const TotalAmount = ({ total}: { total: number }) => {
   return (
     <Box
       flexDirection={"row"}
@@ -17,9 +17,6 @@ export const TotalAmount = ({ total, otherTotal }: { total: number, otherTotal: 
       </Typography>
       <Typography variant="h5" color={"#199999"} fontWeight={"600"}>
         {`$${total.toFixed(2)}`}
-      </Typography>
-      <Typography variant="h5" color={"#199999"} fontWeight={"600"}>
-        {`$${otherTotal.toFixed(2)}`}
       </Typography>
     </Box>
   );

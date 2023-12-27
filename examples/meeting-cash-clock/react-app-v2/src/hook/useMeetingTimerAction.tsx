@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useMeetingContext } from "../context/MeetingContext";
 import { usePostMessageMeetingDetails } from "./useIframePostMessage";
+import { millisecondsToSeconds } from "date-fns";
 
 export const useMeetingTimerAction = () => {
   const { meeting, currentUser, setMeeting } = useMeetingContext();
@@ -120,7 +121,8 @@ export const useMeetingTimerAction = () => {
             durration =
               endTime - Number(participant.joinedAt) + participant.elapsedTime;
           }
-          const totalCost = (durration / 1000 / 3600) * meeting.costPerHour;
+          const totalCost =
+            (millisecondsToSeconds(durration) / 3600) * meeting.costPerHour;
           return {
             ...participant,
             timeSpent: durration,

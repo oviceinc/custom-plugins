@@ -12,6 +12,7 @@ import { Control } from "../../components/v2/Control";
 import { UserList } from "../../components/v2/UserList";
 import { useTimer } from "../../hook/useTimer";
 import { getTime } from "../util";
+import { millisecondsToSeconds } from "date-fns";
 
 export const MeetingPage = () => {
   const [costPerHour, setCostPerHour] = useState(0);
@@ -69,17 +70,6 @@ export const MeetingPage = () => {
     });
   };
 
-  // TODO remove
-  const totalCost = useMemo(() => {
-    if (meeting?.status !== "ended") {
-      return 0;
-    }
-    const userCosts = meeting.participants.map(
-      (participant) => participant.totalCost ?? 0
-    );
-    return userCosts.reduce((acc, cost) => acc + cost, 0);
-  }, [meeting]);
-
   const totalCostV2 = useMemo(() => {
     if (!meeting || meeting?.status === "ready") {
       return 0;
@@ -95,7 +85,7 @@ export const MeetingPage = () => {
         durration =
           startTime - Number(participant.joinedAt) + participant.elapsedTime;
       }
-      return (durration / 1000 / 3600) * meeting.costPerHour;
+      return meeting.costPerHour * (millisecondsToSeconds(durration) / 3600);
     });
     return userCosts.reduce((acc, cost) => acc + cost, 0);
   }, [meeting, startTime]);
@@ -196,13 +186,13 @@ export const MeetingPage = () => {
         saveCost={saveCost}
         newCostPerHour={newCostPerHour}
         setNewCostPerHour={setNewCostPerHour}
-        canEdit={currentUser?.isHost}
+        canEdit={currentUser?.isHost && meeting?.status === "ready"}
       />
       <Time hours={time.hours} minutes={time.minutes} seconds={time.seconds} />
       {(isStoped || meeting.status === "ended") && (
         <UserList participants={participants} />
       )}
-      <TotalAmount total={totalCostV2} otherTotal={totalCost} />
+      <TotalAmount total={totalCostV2} />
       {currentUser?.isHost && (
         <Control
           isPaused={isPaused}
