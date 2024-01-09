@@ -1,5 +1,9 @@
 const testUrls = [
   {
+    name: 'Majority',
+    url: '../../examples/majority/public/',
+  },
+  {
     name: 'Fast Press Game',
     url: '../../examples/fast-press-game/public/',
   },

@@ -101,7 +101,7 @@ function IframeComponent({
       <iframe
         ref={iframeRef}
         id={id}
-        width="300px"
+        width={userId === "1" ? "630px" : "300px"}
         height="350px"
         src={src}
         data-user-id={userId}
