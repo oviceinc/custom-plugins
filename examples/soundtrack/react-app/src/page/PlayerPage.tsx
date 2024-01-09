@@ -3,12 +3,9 @@ import { PlayerView, PlayerViewProps } from "../component/v2/PlayerView";
 import defaultImage from "../assets/default_song_img.jpg";
 import { useSoundTrackContext } from "../context";
 import { toImage } from "../utils";
-type PlayerPageProps = {
-  onUpload: () => void;
-} & PlayerViewProps;
+type PlayerPageProps = PlayerViewProps;
 
 export const PlayerPage = ({
-  onUpload,
   isPlaying,
   onPause,
   onPlay,
@@ -17,15 +14,32 @@ export const PlayerPage = ({
   onSkipPrevious,
   isLoading,
   setVolume,
-  volume
+  onLoop,
+  loop,
+  shuffle,
+  duration,
+  position,
+  setPosition,
+  volume,
 }: PlayerPageProps) => {
   const { currentSong } = useSoundTrackContext();
   return (
-    <Stack spacing={2} alignItems={"center"} justifyContent={"center"}>
+    <Stack
+      spacing={2}
+      alignItems={"center"}
+      justifyContent={"center"}
+      width={"100%"}
+    >
       <Avatar
         alt="Song Image"
         src={currentSong?.image ? toImage(currentSong.image) : defaultImage}
-        sx={{ width: "220px", height: "220px" }}
+        sx={{
+          width: "100%",
+          height: "100%",
+          maxWidth: 220,
+          maxHeight: 220,
+          aspectRatio: "1/1",
+        }}
       />
       <Stack alignItems={"center"} justifyContent={"center"}>
         <Typography textAlign={"center"} variant={"h5"}>
@@ -42,10 +56,15 @@ export const PlayerPage = ({
         onShuffle={onShuffle}
         onSkipNext={onSkipNext}
         onSkipPrevious={onSkipPrevious}
-        onUpload={onUpload}
+        onLoop={onLoop}
         isLoading={isLoading}
         volume={volume}
         setVolume={setVolume}
+        duration={duration}
+        position={position}
+        setPosition={setPosition}
+        loop={loop}
+        shuffle={shuffle}
       />
     </Stack>
   );

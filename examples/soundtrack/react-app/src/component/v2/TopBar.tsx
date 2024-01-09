@@ -1,27 +1,40 @@
-import { Box, IconButton, Stack, Typography } from "@mui/material";
-import { BackArrow, MenuList } from "../icons";
+import { Box, Stack, ToggleButton } from "@mui/material";
+import { Upload, MenuList } from "../icons";
 
 type TopBarProps = {
-  onBack?: () => void;
-  onMenu?: () => void;
-  title?: string;
+  onUploadSong?: (value: boolean) => void;
+  onSongList?: (value: boolean) => void;
+  isSongList?: boolean;
+  isUploadSong?: boolean;
 };
-export const TopBar = ({ title, onBack, onMenu }: TopBarProps) => {
+export const TopBar = ({
+  onUploadSong,
+  onSongList,
+  isSongList,
+  isUploadSong,
+}: TopBarProps) => {
   return (
-    <Box>
-      {onBack && (
-        <Stack gap={1} flexDirection={"row"} alignItems={"center"}>
-          <IconButton onClick={onBack}>
-            <BackArrow />
-          </IconButton>
-          {title && <Typography variant="subtitle1">{title}</Typography>}
-        </Stack>
-      )}
-      {onMenu && (
-        <IconButton sx={{ float: "right" }} onClick={onMenu}>
-          <MenuList />
-        </IconButton>
-      )}
-    </Box>
+    <Stack
+      flexDirection={"row"}
+      justifyContent={"space-between"}
+      alignItems={"center"}
+    >
+      <ToggleButton
+        sx={{ border: 0, "&.Mui-selected": { backgroundColor: "#D7F7F7" } }}
+        value={!isSongList}
+        selected={isSongList}
+        onChange={(_event, value) => onSongList?.(value)}
+      >
+        <MenuList color={isSongList ? "#199999" : undefined} />
+      </ToggleButton>
+      <ToggleButton
+        sx={{ border: 0, "&.Mui-selected": { backgroundColor: "#D7F7F7" } }}
+        value={!isUploadSong}
+        selected={isUploadSong}
+        onChange={(_event, value) => onUploadSong?.(value)}
+      >
+        <Upload color={isUploadSong ? "#199999" : undefined} />
+      </ToggleButton>
+    </Stack>
   );
 };

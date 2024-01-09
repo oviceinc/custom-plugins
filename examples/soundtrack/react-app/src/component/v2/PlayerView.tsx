@@ -1,19 +1,37 @@
-import SkipNextIcon from "@mui/icons-material/SkipNext";
-import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
-import { IconButton, Slider, Stack, CircularProgress } from "@mui/material";
-import { Pause, Play, Shuffle, Upload, VolumeDown, VolumeUp } from "../icons";
+import {
+  IconButton,
+  Slider,
+  Stack,
+  CircularProgress,
+  ToggleButton,
+} from "@mui/material";
+import {
+  Loop,
+  Pause,
+  Play,
+  Shuffle,
+  SkipNext,
+  SkipPrevious,
+  VolumeDown,
+  VolumeUp,
+} from "../icons";
 
 export type PlayerViewProps = {
   volume?: number;
+  position?: number;
+  duration?: number;
   setVolume?: (value: number) => void;
   onPlay?: () => void;
   onPause?: () => void;
   onSkipNext?: () => void;
   onSkipPrevious?: () => void;
-  onShuffle?: () => void;
-  onUpload?: () => void;
+  setPosition?: (value: number) => void;
+  onShuffle?: (value: boolean) => void;
+  onLoop?: (value: boolean) => void;
   isPlaying?: boolean;
   isLoading?: boolean;
+  shuffle?: boolean;
+  loop?: boolean;
 };
 export const PlayerView = ({
   volume,
@@ -23,16 +41,34 @@ export const PlayerView = ({
   onShuffle,
   onSkipNext,
   onSkipPrevious,
-  onUpload,
+  setPosition,
+  onLoop,
   isPlaying,
   isLoading,
+  duration,
+  position,
+  shuffle,
+  loop,
 }: PlayerViewProps) => {
-  console.log(volume)
+  console.log(volume);
   return (
     <Stack alignItems={"center"} width={"100%"}>
+      <Slider
+        sx={{
+          height: 6,
+          "& .MuiSlider-thumb": {
+            height: 16,
+            width: 16,
+          },
+        }}
+        value={position}
+        step={1}
+        max={duration}
+        onChange={(_, value) => setPosition?.(value as number)}
+      />
       <Stack
         spacing={2}
-        width={"70%"}
+        width={"90%"}
         direction="row"
         sx={{ mb: 1 }}
         alignItems="center"
@@ -56,14 +92,20 @@ export const PlayerView = ({
       <Stack
         flexDirection={"row"}
         alignItems={"center"}
-        justifyContent={"center"}
-        gap={2}
+        justifyContent={"space-between"}
+        width={"100%"}
+        flexWrap={"wrap"}
       >
-        <IconButton onClick={onShuffle}>
-          <Shuffle />
-        </IconButton>
+        <ToggleButton
+          sx={{ border: 0, "&.Mui-selected": { backgroundColor: "#D7F7F7" } }}
+          value={!shuffle}
+          selected={shuffle}
+          onChange={(_event, value) => onShuffle?.(value)}
+        >
+          <Shuffle color={shuffle ? "#199999" : undefined} />
+        </ToggleButton>
         <IconButton onClick={onSkipPrevious}>
-          <SkipPreviousIcon />
+          <SkipPrevious />
         </IconButton>
         {isPlaying ? (
           <IconButton onClick={onPause}>
@@ -75,11 +117,16 @@ export const PlayerView = ({
           </IconButton>
         )}
         <IconButton onClick={onSkipNext}>
-          <SkipNextIcon />
+          <SkipNext />
         </IconButton>
-        <IconButton onClick={onUpload}>
-          <Upload />
-        </IconButton>
+        <ToggleButton
+          sx={{ border: 0, "&.Mui-selected": { backgroundColor: "#D7F7F7" } }}
+          value={!loop}
+          selected={loop}
+          onChange={(_event, value) => onLoop?.(value)}
+        >
+          <Loop color={shuffle ? "#199999" : undefined} />
+        </ToggleButton>
       </Stack>
     </Stack>
   );
