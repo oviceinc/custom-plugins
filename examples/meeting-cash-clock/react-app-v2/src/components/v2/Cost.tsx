@@ -36,6 +36,7 @@ export const Cost = ({
           type="number"
           value={newCostPerHour}
           size="small"
+          inputProps={{ autoFocus: true, onFocus: event => event.target.select() }}
           onChange={(e) => setNewCostPerHour(Number(e.target.value))}
         />
       );
@@ -63,7 +64,7 @@ export const Cost = ({
         </Button>
       )}
       {canEdit && !isCostEditing && (
-        <Button variant="text" onClick={editCost} disableElevation>
+        <Button variant="text" onClick={editCost} disableElevation >
           Edit
         </Button>
       )}
