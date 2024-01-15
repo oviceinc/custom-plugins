@@ -2,10 +2,8 @@ const { useEffect, useState } = React;
 const cc = classNames;
 
 function GroupingApp() {
-  {
-    /* Commented out because clipboard is not supported at this time. */
-  }
-  // const copyToClipboard = useCopyToClipboard();
+  const copyToClipboard = useCopyToClipboard();
+  const { successToast, errorToast, Toast } = useToast();
 
   const {
     user,
@@ -33,72 +31,49 @@ function GroupingApp() {
     return userName;
   };
 
-  console.log(groups);
+  const handleGroupsCopyClick = groups => {
+    if (!groups) return;
+    const text = groups
+      .map((group, index) => {
+        const groupUsersList = group
+          .map(member => {
+            return `- ${member.name || 'unknown'}`;
+          })
+          .join('\n');
+        return `[ Group ${index + 1} ]\n${groupUsersList}`;
+      })
+      .join('\n\n');
+    if (copyToClipboard(text)) {
+      successToast({ text: 'Success Copy!' });
+    } else {
+      errorToast({ text: 'Failed Copy!' });
+    }
+  };
 
-  {
-    /* Commented out because clipboard is not supported at this time. */
-  }
-  // const [copyStatus, setCopyStatus] = useState(null);
-
-  {
-    /* Commented out because clipboard is not supported at this time. */
-  }
-  // const handleGroupsCopyClick = groups => {
-  //   if (!groups) return;
-  //   const text = groups
-  //     .map((group, index) => {
-  //       const groupUsersList = group
-  //         .map(member => {
-  //           return `- ${member.name || 'unknown'}`;
-  //         })
-  //         .join('\n');
-  //       return `[ Group ${index + 1} ]\n${groupUsersList}`;
-  //     })
-  //     .join('\n\n');
-  //   if (copyToClipboard(text)) {
-  //     setCopyStatus('Success Copy!');
-  //   } else {
-  //     setCopyStatus('Failed Copy!');
-  //   }
-  // };
-
-  {
-    /* Commented out because clipboard is not supported at this time. */
-  }
-  // const handleGroupUsersCopyClick = (groupName, groupUsers) => {
-  //   if (!groupName || !groupUsers) return;
-  //   const groupUsersList = groupUsers
-  //     .map(member => {
-  //       return `- ${member.name || 'unknown'}`;
-  //     })
-  //     .join('\n');
-  //   const text = `[ ${groupName} ]\n${groupUsersList}`;
-  //   if (copyToClipboard(text)) {
-  //     setCopyStatus('Success Copy!');
-  //   } else {
-  //     setCopyStatus('Failed Copy!');
-  //   }
-  // };
-
-  {
-    /* Commented out because clipboard is not supported at this time. */
-  }
-  // useEffect(() => {
-  //   if (!copyStatus) return;
-  //   const t = setTimeout(() => {
-  //     setCopyStatus(null);
-  //   }, 1000);
-  //   return () => {
-  //     if (!t) return;
-  //     clearTimeout(t);
-  //   };
-  // }, [copyStatus]);
+  const handleGroupUsersCopyClick = (groupName, groupUsers) => {
+    if (!groupName || !groupUsers) return;
+    const groupUsersList = groupUsers
+      .map(member => {
+        return `- ${member.name || 'unknown'}`;
+      })
+      .join('\n');
+    const text = `[ ${groupName} ]\n${groupUsersList}`;
+    if (copyToClipboard(text)) {
+      successToast({ text: 'Success Copy!' });
+    } else {
+      errorToast({ text: 'Failed Copy!' });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col gap-2 select-none relative">
       <h1 className="text-xl font-bold">Grouping</h1>
       {isGroupMaster && (
-        <div>
+        <div className="flex flex-col">
+          <h2 className="text-lg font-bold">User Count</h2>
+          <div className="text-lg font-bold">
+            {users.length}
+          </div>
           <h2 className="text-lg font-bold">Separate Groups Count</h2>
           <div className="flex gap-2">
             <select
@@ -136,8 +111,8 @@ function GroupingApp() {
           <div>
             <h2 className="text-lg font-bold">Result</h2>
           </div>
-          {/* Commented out because clipboard is not supported at this time. */}
-          {/* <div className="text-sm">
+
+          <div className="text-sm">
             <button
               onClick={() => {
                 handleGroupsCopyClick(groups);
@@ -147,7 +122,7 @@ function GroupingApp() {
                 content_copy
               </span>
             </button>
-          </div> */}
+          </div>
         </div>
 
         <div className="select-text grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4">
@@ -179,8 +154,8 @@ function GroupingApp() {
                       [ Group {index + 1} ]
                     </h3>
                   </div>
-                  {/* Commented out because clipboard is not supported at this time. */}
-                  {/* <div className="text-sm select-none hidden">
+
+                  <div className="text-sm select-none">
                     <button
                       onClick={() => {
                         handleGroupUsersCopyClick(`Group ${index + 1}`, group);
@@ -190,7 +165,7 @@ function GroupingApp() {
                         content_copy
                       </span>
                     </button>
-                  </div> */}
+                  </div>
                 </div>
                 <ul>
                   {group.map(v => {
@@ -216,20 +191,7 @@ function GroupingApp() {
           })}
         </div>
       </div>
-      {/* Commented out because clipboard is not supported at this time. */}
-      {/* {copyStatus && (
-        <div
-          className={cc([
-            'absolute bottom-1 right-1 z-9 p-1]',
-            {
-              'text-green-500': copyStatus === 'Success Copy!',
-              'text-red-500': copyStatus === 'Failed Copy!',
-            },
-          ])}
-        >
-          {copyStatus}
-        </div>
-      )} */}
+      <Toast />
     </div>
   );
 }
