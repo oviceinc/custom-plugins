@@ -59,8 +59,6 @@ export const useOviceRecievedEventHandler = () => {
         postMessage({
           type: "ovice_emit_message",
           payload: {
-            objectId: currentUser.objectId,
-            source: currentUser.id.toString(),
             event: "meeting_details",
             to: to.toString(),
             message: meeting,
