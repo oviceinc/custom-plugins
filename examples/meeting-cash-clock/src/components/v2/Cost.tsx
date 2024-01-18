@@ -36,7 +36,16 @@ export const Cost = ({
           type="number"
           value={newCostPerHour}
           size="small"
-          inputProps={{ autoFocus: true, onFocus: event => event.target.select() }}
+          inputProps={{
+            autoFocus: true,
+            onFocus: (event) => event.target.select(),
+            onClick: (event) => event.currentTarget.select(),
+            onKeyUp: (event) => {
+              if (event.key === "Backspace") {
+                event.currentTarget.select();
+              }
+            },
+          }}
           onChange={(e) => setNewCostPerHour(Number(e.target.value))}
         />
       );
@@ -64,7 +73,7 @@ export const Cost = ({
         </Button>
       )}
       {canEdit && !isCostEditing && (
-        <Button variant="text" onClick={editCost} disableElevation >
+        <Button variant="text" onClick={editCost} disableElevation>
           Edit
         </Button>
       )}

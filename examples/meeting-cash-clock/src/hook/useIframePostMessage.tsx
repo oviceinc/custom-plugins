@@ -3,9 +3,7 @@ import { Meeting, OviceClient } from "../context/MeetingContext";
 import { GetParticipantsRequest } from "../page/type";
 
 type CustomPluginEmitToOthersData = {
-  source: string;
   event: string;
-  objectId: string;
   message: unknown;
 };
 
@@ -53,8 +51,6 @@ export const usePostMessageMeetingDetails = () => {
       iframePostMessage({
         type: "ovice_broadcast_message",
         payload: {
-          objectId: currentUser.objectId,
-          source: currentUser.id.toString(),
           event: "meeting_details",
           message: meeting,
         },
