@@ -11,7 +11,7 @@
   - [Participant Information Retrieval Events](#participant-information-retrieval-events)
   - [Real-time Communication Events](#real-time-communication-events)
   - [Reflected Event](#reflected-event)
-  - [Data Management Events](#data-management-events)
+  - [Data Management Events](#data-management-events-under-development)
 - [Additional Information for Status:](#additional-information-for-status)
 
 ## Overview
@@ -394,7 +394,7 @@ sequenceDiagram
   }
   ```
 
-### Data Management Events
+### Data Management Events (under development)
 
 #### Events Overview
 

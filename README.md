@@ -11,7 +11,7 @@
   - [Events for Participant Information](#events-for-participant-information)
   - [Real-time Communication Events](#real-time-communication-events)
   - [Event for Event Reflection](#event-for-event-reflection)
-  - [Data Management Events](#data-management-events)
+  - [Data Management Events (under development)](#data-management-events-under-development)
 
 ## Overview
 
@@ -104,7 +104,7 @@ An event meant to reflect messages between participants:
 | :------------------------------------------------------------------------ | :----------- |
 | [ovice_message](./docs/technical_details_for_developers.md#ovice_message) | ovice Domain |
 
-### Data Management Events
+### Data Management Events (under development)
 
 Events in the ovice domain related to data management and storage actions:
 
