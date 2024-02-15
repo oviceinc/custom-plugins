@@ -2,24 +2,18 @@ const { useState, useRef, useCallback, useEffect } = React;
 
 class Participant {
   constructor(data = {}) {
-    this._id = data.id;
+    this.id = data.id && data.id.toString();
     this.email = data.email;
-    this.name = data.name;
-    this.objectId = data.objectId;
+    this.name = data.name && data.name.replace(/\s+/g, ' ');
+    this.objectId = data.objectId && data.objectId.toString();
     this.objectType = data.objectType;
     this.avatarUrl = data.avatarUrl;
-    this._workspaceId = data.workspaceId;
+    this.workspaceId = data.workspaceId && data.workspaceId.toString();
     this.isHost = data.isHost;
     this.isSelf = data.isSelf;
     this.isVisitor = data.isVisitor;
     this.language = data.language;
     this.status = data.status; // joined, subscribed, etc.
-  }
-  get id() {
-    return this._id && this._id.toString();
-  }
-  get workspaceId() {
-    return this._workspaceId && this._workspaceId.toString();
   }
 }
 
@@ -29,10 +23,7 @@ class Message {
     this.event = data.event;
     this.objectId = data.objectId;
     this.message = data.message;
-    this._to = data.to; // Optional, only used for direct messages
-  }
-  get to() {
-    return this._to && this._to.toString();
+    this.to = data.to && data.to.toString(); // Optional, only used for direct messages
   }
 }
 
@@ -49,10 +40,16 @@ function useUsers() {
   const [users, setUsers] = useState([]);
   return { user, users, setUser, setUsers };
 }
+// Managing data store information
+function useDataStore() {
+  const [store, setStore] = useState({});
+  return { store, setStore };
+}
 // Event handling
 function useEventHandlers() {
   const eventFunction = useRef(() => {});
   const userEventFunction = useRef(() => {});
+  const storeEventFunction = useRef(() => {});
   const messageEventFunction = useRef(() => {});
   const onEvent = useCallback(callback => {
     eventFunction.current = callback;
@@ -60,15 +57,20 @@ function useEventHandlers() {
   const onUserEvent = useCallback(callback => {
     userEventFunction.current = callback;
   }, []);
+  const onStoreEvent = useCallback(callback => {
+    storeEventFunction.current = callback;
+  }, []);
   const onMessageEvent = useCallback(callback => {
     messageEventFunction.current = callback;
   }, []);
   return {
     onEvent,
     onUserEvent,
+    onStoreEvent,
     onMessageEvent,
     eventFunction,
     userEventFunction,
+    storeEventFunction,
     messageEventFunction,
   };
 }
@@ -88,8 +90,6 @@ function useMessageEmitter(user) {
         payload: {
           event: event,
           message: message,
-          objectId: user.objectId && user.objectId.toString(),
-          source: user.id && user.id,
         },
       });
     },
@@ -102,9 +102,7 @@ function useMessageEmitter(user) {
         payload: {
           event: event,
           message: message,
-          objectId: user.objectId && user.objectId.toString(),
-          source: user.id && user.id,
-          to: userId && userId,
+          to: userId,
         },
       });
     },
@@ -132,6 +130,9 @@ function useStatus(user, users) {
 function useInitialization(postMessage) {
   const init = useCallback(() => {
     postMessage({
+      type: 'ovice_get_data',
+    });
+    postMessage({
       type: 'ovice_get_participants',
     });
   }, [postMessage]);
@@ -142,17 +143,39 @@ function useInitialization(postMessage) {
   }, [postMessage]);
   return { init, updateUsers };
 }
+// Updating the data store
+function useUpdateDataStore(postMessage, setStore) {
+  const saveStore = useCallback(
+    (data = {}) => {
+      const message = new MessageEvent({
+        type: 'ovice_save_and_emit_data',
+        payload: data,
+      });
+      setStore(data);
+      postMessage(message);
+    },
+    [setStore, postMessage]
+  );
+  const resetStore = useCallback(() => {
+    saveStore({});
+  }, [saveStore]);
+  return { saveStore, resetStore };
+}
 function useCustomObjectClient() {
   const [lastMessage, setLastMessage] = useState(null);
   // Managing user information
   const { user, users, setUser, setUsers } = useUsers();
+  // Managing data store information
+  const { store, setStore } = useDataStore();
   // Managing event handlers
   const {
     onEvent,
     onUserEvent,
+    onStoreEvent,
     onMessageEvent,
     eventFunction,
     userEventFunction,
+    storeEventFunction,
     messageEventFunction,
   } = useEventHandlers();
   // Sending messages
@@ -162,6 +185,8 @@ function useCustomObjectClient() {
     useStatus(user, users);
   // Initialization and updating the user list
   const { init, updateUsers } = useInitialization(postMessage);
+  // Updating the data store
+  const { saveStore, resetStore } = useUpdateDataStore(postMessage, setStore);
   // Message handler
   const handleMessage = useCallback(
     event => {
@@ -170,9 +195,9 @@ function useCustomObjectClient() {
       setLastMessage(event.data);
       switch (eventInstance.type) {
         case 'ovice_participants':
-          const participants = eventInstance.payload.map(
-            p => new Participant(p)
-          );
+          const participants = eventInstance.payload
+            .map(p => (p.id && p.workspaceId ? new Participant(p) : null))
+            .filter(v => v);
           setUsers(participants);
           setUser(
             participants.find(participant => {
@@ -193,6 +218,16 @@ function useCustomObjectClient() {
         case 'ovice_confirmation':
           postMessage({ type: 'ovice_ready_confirmed' });
           break;
+        case 'ovice_shared_data':
+        case 'ovice_saved_data':
+          setStore(eventInstance.payload);
+          storeEventFunction.current &&
+            storeEventFunction.current(eventInstance);
+          break;
+        case 'ovice_data_saved_success':
+          storeEventFunction.current &&
+            storeEventFunction.current(eventInstance);
+          break;
         case 'ovice_message':
           const message = new Message(eventInstance.payload);
           messageEventFunction.current && messageEventFunction.current(message);
@@ -201,7 +236,7 @@ function useCustomObjectClient() {
           break;
       }
     },
-    [setUsers, setUser, postMessage]
+    [setUsers, setUser, postMessage, setStore, setLastMessage]
   );
   // Registering event listener and cleanup on initialization
   useEffect(() => {
@@ -216,8 +251,7 @@ function useCustomObjectClient() {
     let timeoutId = null;
     if (
       lastMessage &&
-      (lastMessage.type.startsWith('ovice_participant_') ||
-        lastMessage.type.startsWith('ovice_other_participant_'))
+      lastMessage.type.startsWith('ovice_participant_')
     ) {
       timeoutId = setTimeout(updateUsers, 1000);
     }
@@ -231,17 +265,21 @@ function useCustomObjectClient() {
   return {
     user,
     users,
+    store,
     isStaticObject,
     isDynamicObject,
     isHost,
     isMaster,
     isJoined,
+    saveStore,
+    resetStore,
     updateUsers,
     postMessage,
     broadcast,
     emitTo,
     onEvent,
     onUserEvent,
+    onStoreEvent,
     onMessageEvent,
   };
 }
