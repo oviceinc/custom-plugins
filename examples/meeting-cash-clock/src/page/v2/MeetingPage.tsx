@@ -87,7 +87,7 @@ export const MeetingPage = () => {
       }
       return meeting.costPerHour * (millisecondsToSeconds(durration) / 3600);
     });
-    return userCosts.reduce((acc, cost) => acc + cost, 0);
+    return Math.abs(userCosts.reduce((acc, cost) => acc + cost, 0));
   }, [meeting, startTime]);
 
   const participants = useMemo(() => {
