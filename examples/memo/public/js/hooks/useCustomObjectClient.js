@@ -89,7 +89,7 @@ function useMessageEmitter(user) {
         type: 'ovice_broadcast_message',
         payload: {
           event: event,
-          message: message
+          message: message,
         },
       });
     },
@@ -251,6 +251,7 @@ function useCustomObjectClient() {
     let timeoutId = null;
     if (
       lastMessage &&
+      lastMessage.type &&
       lastMessage.type.startsWith('ovice_participant_')
     ) {
       timeoutId = setTimeout(updateUsers, 1000);
