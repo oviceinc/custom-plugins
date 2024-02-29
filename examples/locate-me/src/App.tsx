@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 export type OvicePayloadType = {
   name: string;
   id: string;
+  email: string;
   isSelf: boolean;
   objectId: string;
   workspaceId: string;
@@ -27,6 +28,7 @@ function App() {
           setMe({
             id: me.id,
             name: me.name,
+            email: me.email,
             objectId: me.objectId,
             workspaceId: me.workspaceId,
           });
