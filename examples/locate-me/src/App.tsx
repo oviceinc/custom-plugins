@@ -7,7 +7,7 @@ import Box from "@mui/material/Box";
 export type OvicePayloadType = {
   name: string;
   id: string;
-  email: string;
+  email?: string;
   isSelf: boolean;
   objectId: string;
   workspaceId: string;
