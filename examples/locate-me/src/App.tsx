@@ -8,7 +8,8 @@ export type OvicePayloadType = {
   name: string;
   id: string;
   isSelf: boolean;
-  workspace_id: string;
+  objectId: string;
+  workspaceId: string;
 };
 
 type CustomPluginParticipantsEvent = {
@@ -16,14 +17,19 @@ type CustomPluginParticipantsEvent = {
   payload: OvicePayloadType[];
 };
 function App() {
-  const [me, setMe] = useState<Omit<OvicePayloadType, "isSelf">>({  id: "123", name: "dude", workspace_id: "1233" });
+  const [me, setMe] = useState<Omit<OvicePayloadType, "isSelf">>();
   useMessageEventListener(
     useCallback((event) => {
       const data = event.data as CustomPluginParticipantsEvent;
       if (data.type === "ovice_participants") {
         const me = data.payload.find((p) => p.isSelf);
         if (me) {
-          setMe({ id: me.id, workspace_id: me.workspace_id, name: me.name });
+          setMe({
+            id: me.id,
+            name: me.name,
+            objectId: me.objectId,
+            workspaceId: me.workspaceId,
+          });
         }
       }
     }, [])
