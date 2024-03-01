@@ -50,16 +50,15 @@ function useMajorityDataStore({ user, cache, updateCache, onStoreEvent }) {
     setChoices(
       (cache.choices && cache.choices.split(',')) || ['A', 'B', 'C', 'D', 'E']
     );
+  }, [cache.choices, setChoices]);
+
+  useEffect(() => {
     setMajority(cache.value || {});
+  }, [cache.value, setMajority]);
+
+  useEffect(() => {
     setResultsVisible(cache.resultsVisible || false);
-  }, [
-    cache.choices,
-    cache.value,
-    cache.resultsVisible,
-    setMajority,
-    setChoices,
-    setResultsVisible,
-  ]);
+  }, [cache.resultsVisible, setResultsVisible]);
 
   return {
     majorityData,
