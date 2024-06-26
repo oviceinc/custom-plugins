@@ -1,1 +1,0 @@
-.jigsaw-puzzle{position:relative;background-color:#fff;width:60%}.jigsaw-puzzle__piece{position:absolute;border:1px solid #000;cursor:pointer;z-index:1;-webkit-user-select:none;user-select:none}.jigsaw-puzzle__piece.jigsaw-puzzle__piece--solved{border-color:#000;z-index:0}.jigsaw-puzzle__piece.jigsaw-puzzle__piece--dragging{z-index:5;box-shadow:1px 1px 5px #00000091}
