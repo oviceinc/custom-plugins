@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+    <title>Parent Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #messageContainer {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+    </style>
+
+<body style="margin-bottom: 55px !important;">
+    <script>
+
+
+
+        window.onload = function() {
+           window.parent.postMessage({ type: "ovice_get_participants" }, "*");
+        };
+
+        // Function to handle received messages
+        function handleMessage(event) {
+            if (event.data) {
+              window.parent.postMessage({
+                  type: "ovice_change_user_state", payload: {
+                      action: "in_range",
+                      status: "busy"
+                  }
+              }, "*");
+
+              window.parent.postMessage({
+                  type: "ovice_change_user_state", payload: {
+                      action: "out_of_range",
+                      status: "available"
+                  }
+              }, "*");
+            }
+        }
+
+        // Add an event listener to listen for incoming messages
+        window.addEventListener('message', handleMessage);
+    </script>
+
+
+</body>
+
+</html>
