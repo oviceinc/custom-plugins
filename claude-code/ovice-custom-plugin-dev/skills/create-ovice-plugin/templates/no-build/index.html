@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>__PLUGIN_TITLE__</title>
+    <!-- Tailwind CSS (Play CDN: fine for plugins, not for heavy production apps) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- React and ReactDOM (same versions as the official examples) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/17.0.2/umd/react-dom.production.min.js"></script>
+    <!-- Babel 6 standalone: transpiles each `text/babel` file to ES5, so the repeated
+         `const { useState } = React;` lines at the top of each file do not collide.
+         Keep this version unless you also wrap every file in its own scope. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <!-- Bump ?v= on deploy to bust caches inside ovice. Order matters: hooks first, app last. -->
+    <script type="text/babel" src="./js/hooks/useCustomObjectClient.js?v=0.0.1"></script>
+    <script type="text/babel" src="./js/hooks/useCacheStore.js?v=0.0.1"></script>
+    <script type="text/babel" src="./js/app.js?v=0.0.1"></script>
+  </body>
+</html>

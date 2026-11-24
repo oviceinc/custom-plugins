@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ovice Mock Host</title>
+<!--
+  Mock ovice host for Custom Plugin development.
+  Loads one plugin URL into several iframes (one per simulated user) and implements the
+  ovice postMessage protocol between them: participants, status events, broadcast/emit,
+  object data store. No dependencies.
+
+  Open as:  mock-host.html?url=http://localhost:5173/&users=4&type=static
+-->
+<style>
+  :root { --bg:#f3f4f6; --panel:#fff; --line:#d1d5db; --muted:#6b7280; --in:#2563eb; --out:#059669; --err:#dc2626; --warn:#b45309; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:13px/1.4 system-ui, sans-serif; background:var(--bg); color:#111827; }
+  header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 12px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:1; }
+  header input[type=text] { width:340px; max-width:100%; }
+  input, select, button { font:inherit; padding:3px 6px; }
+  button { cursor:pointer; }
+  main { display:grid; grid-template-columns:1fr 420px; gap:8px; padding:8px; }
+  @media (max-width: 1000px) { main { grid-template-columns:1fr; } }
+  #users { display:flex; flex-wrap:wrap; gap:8px; align-content:flex-start; }
+  .user { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px; }
+  .user.gone { opacity:.55; }
+  .user .bar { display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap; }
+  .user iframe { display:block; border:1px solid var(--line); background:#fff; }
+  .placeholder { display:flex; align-items:center; justify-content:center; color:var(--muted); border:1px dashed var(--line); }
+  aside { display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px; min-width:0; }
+  .panel h3 { margin:0 0 4px; font-size:13px; display:flex; justify-content:space-between; align-items:center; }
+  #log { height:420px; overflow:auto; font:11px/1.35 ui-monospace, monospace; white-space:pre-wrap; word-break:break-all; }
+  #log .in { color:var(--in); } #log .out { color:var(--out); } #log .err { color:var(--err); font-weight:bold; } #log .warn { color:var(--warn); }
+  textarea { width:100%; height:140px; font:11px ui-monospace, monospace; }
+  .muted { color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <strong>ovice Mock Host</strong>
+  <label>Plugin URL <input id="url" type="text" placeholder="http://localhost:8080/" /></label>
+  <label>Object <select id="type"><option>static</option><option>dynamic</option></select></label>
+  <label>Users <input id="count" type="number" min="1" max="12" value="4" style="width:52px" /></label>
+  <label>Size <input id="w" type="number" value="300" style="width:58px" />×<input id="h" type="number" value="350" style="width:58px" /></label>
+  <label title="Deliver broadcasts back to the sender too, to check your plugin tolerates it"><input id="echo" type="checkbox" /> echo broadcast</label>
+  <label title="Include email in participant events"><input id="email" type="checkbox" /> email</label>
+  <button id="apply">Apply / reload</button>
+</header>
+<main>
+  <section id="users"></section>
+  <aside>
+    <div class="panel">
+      <h3>Object data store <span><button id="clearData">clear</button> <button id="pushData">save &amp; emit ↓</button></span></h3>
+      <textarea id="data" spellcheck="false">{}</textarea>
+      <div class="muted" id="dataInfo"></div>
+    </div>
+    <div class="panel">
+      <h3>Messages <span><label><input id="hideParticipants" type="checkbox" /> hide participant traffic</label> <button id="clearLog">clear</button></span></h3>
+      <div id="log"></div>
+    </div>
+  </aside>
+</main>
+<script>
+(() => {
+  const MESSAGE_LIMIT = 2 * 1024 * 1024; // ovice_broadcast/emit message
+  const DATA_LIMIT = 500 * 1024;         // object data payload
+  const OBJECT_ID = 'mock-object-1';
+  const WORKSPACE_ID = 987;              // number on purpose: real payloads may use numbers
+  const $ = id => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  $('url').value = params.get('url') || '';
+  $('type').value = params.get('type') === 'dynamic' ? 'dynamic' : 'static';
+  $('count').value = params.get('users') || 4;
+
+  let users = [];      // { id, name, status, isVisitor, isHost, iframe, win }
+  let store = {};
+  const byteSize = v => new Blob([JSON.stringify(v ?? null)]).size;
+
+  // ---------- logging ----------
+  function log(kind, who, data) {
+    const isParticipant = data && /^ovice_(get_)?participant/.test(data.type || '');
+    if ($('hideParticipants').checked && isParticipant && kind !== 'err') return;
+    const el = document.createElement('div');
+    el.className = kind;
+    const arrow = { in: `user${who} → ovice`, out: `ovice → user${who}`, err: `ERROR user${who}`, warn: `WARN user${who}` }[kind];
+    el.textContent = `${new Date().toLocaleTimeString()} ${arrow} ${typeof data === 'string' ? data : JSON.stringify(data)}`;
+    $('log').appendChild(el);
+    $('log').scrollTop = $('log').scrollHeight;
+  }
+
+  // ---------- participants ----------
+  const inRange = u => u.status !== 'unsubscribed';
+  const avatar = u => 'data:image/svg+xml,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="hsl(${u.id * 67 % 360},60%,55%)"/><text x="32" y="42" font-size="28" text-anchor="middle" fill="#fff" font-family="sans-serif">${u.id}</text></svg>`);
+  function participant(u, selfId, withEmail) {
+    const p = {
+      id: u.id, name: u.name, objectId: OBJECT_ID, objectType: $('type').value,
+      avatarUrl: avatar(u), workspaceId: WORKSPACE_ID,
+      isHost: u.isHost, isSelf: u.id === selfId, isVisitor: u.isVisitor, status: u.status, language: 'en',
+    };
+    if (withEmail && $('email').checked) p.email = `user${u.id}@example.com`;
+    return p;
+  }
+  function send(u, message) {
+    if (!u.win) return;
+    log('out', u.id, message);
+    u.win.postMessage(message, '*');
+  }
+  function announce(changed) {
+    // Status events go to every mounted iframe (isSelf tells them apart).
+    users.filter(u => u.win).forEach(u =>
+      send(u, { type: `ovice_participant_${changed.status}`, payload: participant(changed, u.id, true) }));
+  }
+
+  // ---------- protocol ----------
+  function handle(u, data) {
+    if (!data || typeof data.type !== 'string') return;
+    log('in', u.id, data);
+    const { type, payload } = data;
+    switch (type) {
+      case 'ovice_get_participants':
+        send(u, { type: 'ovice_participants', payload: users.filter(inRange).map(x => participant(x, u.id, false)) });
+        break;
+      case 'ovice_get_data':
+        send(u, { type: 'ovice_saved_data', payload: store });
+        break;
+      case 'ovice_save_and_emit_data': {
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) { log('err', u.id, 'save_and_emit_data payload must be an object'); break; }
+        const size = byteSize(payload);
+        if (size > DATA_LIMIT) { log('err', u.id, `data payload ${size} bytes > 500KB limit`); break; }
+        store = payload; renderStore();
+        users.filter(x => x.win && inRange(x)).forEach(x => x === u
+          ? send(x, { type: 'ovice_data_saved_success', payload: { ...payload, updated_at: Math.floor(Date.now() / 1000) } })
+          : send(x, { type: 'ovice_shared_data', payload }));
+        break;
+      }
+      case 'ovice_broadcast_message':
+      case 'ovice_emit_message': {
+        if (!payload || typeof payload.event !== 'string') { log('err', u.id, `${type} needs payload.event (string)`); break; }
+        const size = byteSize(payload.message);
+        if (size > MESSAGE_LIMIT) { log('err', u.id, `message ${size} bytes > 2MB limit`); break; }
+        const out = { source: u.id, event: payload.event, objectId: OBJECT_ID, message: payload.message };
+        if (type === 'ovice_emit_message') {
+          if (typeof payload.to !== 'string') log('warn', u.id, `emit "to" should be a string, got ${typeof payload.to}`);
+          const target = users.find(x => x.id === String(payload.to));
+          if (!target || !target.win) { log('warn', u.id, `emit target ${payload.to} is not on the object`); break; }
+          send(target, { type: 'ovice_message', payload: { ...out, to: String(payload.to) } });
+        } else {
+          users.filter(x => x.win && inRange(x) && (x !== u || $('echo').checked))
+            .forEach(x => send(x, { type: 'ovice_message', payload: out }));
+        }
+        break;
+      }
+      case 'ovice_ready':
+        send(u, { type: 'ovice_confirmation' });
+        break;
+      case 'ovice_ready_confirmed':
+        break;
+      default:
+        log('warn', u.id, `unknown message type "${type}"`);
+    }
+  }
+  window.addEventListener('message', e => {
+    const u = users.find(x => x.win && x.win === e.source);
+    if (u) handle(u, e.data);
+  });
+
+  // ---------- UI ----------
+  function mount(u) {
+    const box = $(`user-${u.id}`);
+    const slot = box.querySelector('.slot');
+    slot.innerHTML = '';
+    u.win = null;
+    box.classList.toggle('gone', !inRange(u));
+    if (!inRange(u)) {
+      slot.innerHTML = `<div class="placeholder" style="width:${$('w').value}px;height:${$('h').value}px">out of range (iframe unloaded)</div>`;
+      return;
+    }
+    const iframe = document.createElement('iframe');
+    iframe.width = $('w').value; iframe.height = $('h').value;
+    iframe.src = $('url').value;
+    iframe.addEventListener('load', () => {
+      // Like ovice: the newcomer learns its own status, the others learn about the newcomer.
+      setTimeout(() => announce(u), 300);
+    }, { once: true });
+    slot.appendChild(iframe);
+    u.win = iframe.contentWindow;
+  }
+
+  function setStatus(u, status) {
+    const wasInRange = inRange(u);
+    u.status = status;
+    if (!inRange(u)) {
+      announce(u);         // tell everyone (incl. the leaving iframe) before unloading it
+      setTimeout(() => mount(u), 200);
+    } else if (!wasInRange) {
+      mount(u);            // fresh iframe = late joiner; announce happens on load
+    } else {
+      announce(u);
+    }
+  }
+
+  function build() {
+    const url = $('url').value.trim();
+    const qs = new URLSearchParams({ url, users: $('count').value, type: $('type').value });
+    history.replaceState(null, '', `?${qs}`);
+    $('users').innerHTML = '';
+    if (!url) { $('users').innerHTML = '<p class="muted">Enter the plugin URL (served over http(s), e.g. http://localhost:8080/) and press Apply.</p>'; return; }
+    const n = Math.max(1, Math.min(12, Number($('count').value) || 4));
+    const dynamic = $('type').value === 'dynamic';
+    users = Array.from({ length: n }, (_, i) => ({
+      id: String(i + 1), name: `User ${i + 1}`,
+      status: i < 2 ? 'joined' : 'subscribed',
+      isVisitor: i === n - 1 && n > 2,
+      isHost: dynamic && i === 0,
+      win: null,
+    }));
+    users.forEach(u => {
+      const box = document.createElement('div');
+      box.className = 'user'; box.id = `user-${u.id}`;
+      box.innerHTML = `
+        <div class="bar">
+          <strong>${u.name}</strong>
+          ${u.isHost ? '<span title="owner of dynamic object">★ host</span>' : ''}
+          <label><input type="checkbox" class="visitor" ${u.isVisitor ? 'checked' : ''}/> visitor</label>
+          <select class="status">${['subscribed', 'joined', 'left', 'unsubscribed'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+          <button class="reload" title="reload this iframe">⟳</button>
+        </div>
+        <div class="slot"></div>`;
+      box.querySelector('.status').addEventListener('change', e => setStatus(u, e.target.value));
+      box.querySelector('.visitor').addEventListener('change', e => { u.isVisitor = e.target.checked; });
+      box.querySelector('.reload').addEventListener('click', () => mount(u));
+      $('users').appendChild(box);
+      mount(u);
+    });
+  }
+
+  function renderStore() {
+    $('data').value = JSON.stringify(store, null, 2);
+    $('dataInfo').textContent = `${byteSize(store)} bytes / 500KB`;
+  }
+  $('pushData').addEventListener('click', () => {
+    try { store = JSON.parse($('data').value || '{}'); } catch (e) { alert('Invalid JSON'); return; }
+    renderStore();
+    users.filter(u => u.win && inRange(u)).forEach(u => send(u, { type: 'ovice_shared_data', payload: store }));
+  });
+  $('clearData').addEventListener('click', () => { store = {}; renderStore(); });
+  $('clearLog').addEventListener('click', () => { $('log').innerHTML = ''; });
+  $('apply').addEventListener('click', build);
+  $('url').addEventListener('keydown', e => { if (e.key === 'Enter') build(); });
+  renderStore();
+  build();
+})();
+</script>
+</body>
+</html>

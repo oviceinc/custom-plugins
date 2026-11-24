@@ -1,0 +1,11 @@
+{
+  "name": "ovice-custom-plugin-dev",
+  "version": "0.1.0",
+  "description": "Skills for building ovice Custom Plugins: postMessage API reference, scaffolding templates and a local mock ovice host for multi-user testing.",
+  "author": {
+    "name": "oVice, Inc."
+  },
+  "homepage": "https://github.com/oviceinc/custom-plugins",
+  "repository": "https://github.com/oviceinc/custom-plugins",
+  "keywords": ["ovice", "custom-plugin", "iframe", "postMessage"]
+}

@@ -4,6 +4,7 @@
 
 - [Overview](#overview)
 - [Getting Started with Examples](#getting-started-with-examples)
+- [Build with Claude Code](#build-with-claude-code)
 - [Understanding Events](#understanding-events)
   - [Status Events](#status-events)
   - [Recommanded Initial connection Event](#recommended-initial-connection-events)
@@ -29,6 +30,19 @@ Here are some examples of plugins you can use as a reference for developing your
 | [Fast Press Game](./examples/fast-press-game/)      | This is a quick press game for multiple people that can be used for quizzes, etc. |
 | [Grouping](./examples/grouping/)                    | This is a tool that allows you to efficiently divide participants into groups.    |
 | [Memo](./examples/memo/)                            | A simple memo app.                                                                |
+
+## Build with Claude Code
+
+This repository is also a [Claude Code](https://claude.com/claude-code) plugin marketplace.
+The `ovice-custom-plugin-dev` plugin adds skills for the event API, scaffolding a new plugin
+and testing it locally against a mock ovice host with several simulated users.
+
+```bash
+claude plugin marketplace add oviceinc/custom-plugins
+claude plugin install ovice-custom-plugin-dev@ovice-custom-plugins
+```
+
+See [claude-code/ovice-custom-plugin-dev](./claude-code/ovice-custom-plugin-dev/) for details.
 
 ## Understanding Events
 
