@@ -1,0 +1,17 @@
+{
+  "name": "ovice-custom-plugins",
+  "owner": {
+    "name": "oVice, Inc."
+  },
+  "metadata": {
+    "description": "Claude Code plugins for building ovice Custom Plugins."
+  },
+  "plugins": [
+    {
+      "name": "ovice-custom-plugin-dev",
+      "source": "./claude-code/ovice-custom-plugin-dev",
+      "description": "Skills for building ovice Custom Plugins: postMessage API reference, scaffolding templates and a local mock ovice host for multi-user testing.",
+      "category": "development"
+    }
+  ]
+}
