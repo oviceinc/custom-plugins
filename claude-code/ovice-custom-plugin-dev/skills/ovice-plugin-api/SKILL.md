@@ -22,14 +22,15 @@ shared between users has to go through broadcast/emit messages or the object dat
 | plugin → ovice | `ovice_get_participants` | Ask for everyone joined/subscribed to the object (incl. self). **Send on startup.** |
 | ovice → plugin | `ovice_participants` | Reply: `payload` is an array of participants; find yourself with `isSelf`. |
 | ovice → plugin | `ovice_participant_subscribed` / `_joined` / `_left` / `_unsubscribed` | A participant's status changed. `payload` is one participant. |
-| plugin → ovice | `ovice_broadcast_message` | Send `{ event, message }` to every user on the object. |
-| plugin → ovice | `ovice_emit_message` | Send `{ event, message, to }` to one user. |
-| ovice → plugin | `ovice_message` | Delivered broadcast/emit: `{ source, event, objectId, message, to? }`. |
-| plugin → ovice | `ovice_get_data` | Read the object's persisted data. *(under development)* |
+| plugin → ovice | `ovice_broadcast_message` | Send `{ event, message }` (nothing else) to every *other* user on the object. |
+| plugin → ovice | `ovice_emit_message` | Send `{ event, message, to }` (nothing else) to one user. |
+| ovice → plugin | `ovice_message` | Delivered broadcast/emit: exactly the sender's `{ event, message, to? }`. **No `source`, no `objectId`.** |
+| plugin → ovice | `ovice_get_data` | Read the object's persisted data. *(ignored by production ovice)* |
 | ovice → plugin | `ovice_saved_data` | Reply with the persisted object (`payload`). |
-| plugin → ovice | `ovice_save_and_emit_data` | Persist `payload` and push it to the other users. |
+| plugin → ovice | `ovice_save_and_emit_data` | Persist `payload` and push it to the other users. *(ignored by production ovice)* |
 | ovice → plugin | `ovice_shared_data` | Someone else saved; `payload` is the new data. |
-| ovice → plugin | `ovice_data_saved_success` | Your save succeeded; `payload` = data + `updated_at` (unix sec). |
+| ovice → plugin | `ovice_data_saved_success` | Your save succeeded; `payload` = saved data (static objects only). |
+| ovice → plugin | `ovice_errors` | Your request was rejected (validation, size, rate limit). `payload`: string or string[]. |
 
 Full payload schemas, JSON examples and sequence diagrams: [references/events.md](references/events.md).
 Proven multi-user patterns (leader election, shared cache, persistence): [references/patterns.md](references/patterns.md).
@@ -57,36 +58,56 @@ const isGameMaster = user.isHost || (isStaticObject && isJoined);
 
 ## Rules and gotchas (check these whenever writing or reviewing plugin code)
 
-1. **Request participants on mount.** Nothing is pushed until you send
-   `ovice_get_participants`; the reply is your only reliable way to learn who *you* are
-   (`isSelf: true`).
-2. **Participant events are for everyone, not just you.** Filter with `payload.isSelf`
-   when you only care about the local user. After any `ovice_participant_*` event, re-send
-   `ovice_get_participants` (the examples debounce ~1 s) to refresh the list.
-3. **Normalise IDs to strings.** `id`, `workspaceId` and `objectId` can arrive as string
-   *or* number (`workspaceId: 987` in real payloads). Compare with `String(a) === String(b)`.
-   Always send `to` as a string.
-4. **Don't count on receiving your own broadcast.** Update local state optimistically and
-   then broadcast (as `fast-press-game` does). Treat `ovice_message` from yourself
-   (`source === self.id`) as a no-op if it does arrive.
-5. **Namespace your `event` names** (e.g. `quiz:answer`) – `event` is free-form and is the
-   only thing distinguishing your custom messages.
-6. **Size limits**: broadcast/emit `message` ≤ **2 MB**; object data payload ≤ **500 KB**.
-   Keep data JSON-serialisable; the bundled `useCacheStore` only accepts flat objects whose
-   values are primitives or plain objects (no top-level arrays).
-7. **Data store is "under development".** Prefer real-time messages for live state and use
-   `ovice_save_and_emit_data` as a backup/persistence layer, not a database. It is
-   last-write-wins; serialise writes through one leader (see patterns).
-8. **`email` is conditional** – present only if the organisation owner allowed it in the
-   custom plugin settings. Never require it.
-9. **Visitors/guests** have `isVisitor: true`; decide explicitly whether they can act.
-10. **Undocumented handshake**: the reference client answers an incoming
-    `ovice_confirmation` with `{ type: 'ovice_ready_confirmed' }`. Keep that branch when
-    writing your own client.
-11. **Use `'*'` as targetOrigin when posting to the parent** (the ovice host origin is not
-    fixed per environment). When *receiving*, ignore messages whose `data.type` does not
-    start with `ovice_`, and never `eval`/render untrusted `message` content as HTML.
-12. **Layout**: the page runs in a small iframe – design for ~300×350 px and full-height
+These come from the real host (ovice-ui `routes/workspace/SpaceObject/plugins/custom_plugin.tsx`
+and `CustomPlugin/schema.ts`). The public spec and older examples differ in places; the host wins.
+
+1. **Send only `{ event, message }` (+ `to`).** The host validates broadcast/emit payloads
+   with a *strict* schema. With any extra key (`source`, `objectId`, `from`, …) the request
+   is **silently dropped** (you only get `ovice_errors`). The spec's examples that include
+   `source`/`objectId` in the payload are wrong. Also: `event` 3–256 chars; `message`
+   must be number / string / boolean / object / array of (string | number | boolean | object)
+   — `null`, `undefined` (or omitting it) and nested arrays are rejected; `to` must be a string.
+2. **Received messages have no sender id.** `ovice_message.payload` is exactly what the
+   sender posted. If receivers need to know who sent it (reply with emit, ignore own
+   messages, check the leader), put it **inside `message`**, e.g.
+   `broadcast('quiz:answer', { from: self.id, ... })`. Never read `payload.source`.
+3. **Broadcasts never echo back**, and emitting to yourself is ignored. Update local state
+   first, then broadcast.
+4. **Request participants on mount and keep refreshing.** The iframe is created when the
+   user comes into range, and that user's own `subscribed`/`joined` event fires *before*
+   the iframe is ready, so neither the newcomer nor the others receive it. Learn who you
+   are from `ovice_get_participants` (`isSelf: true`), re-request ~1 s after any
+   `ovice_participant_*` event, and also poll (e.g. every few seconds) so others notice
+   newcomers. Never block on a participant event or on a handshake.
+5. **Participant events are relayed to everyone.** The user's own iframe gets `isSelf: true`;
+   the others get the same payload with `isSelf: false`. Event payloads have **no `status`**
+   (derive it from the event type) and spell the language key `languge`. In
+   `ovice_participants`, `status` is only `"joined"` or `"subscribed"`.
+6. **Rate limit: 100 broadcast/emit/save requests per minute per iframe.** Further requests
+   are dropped with `ovice_errors`. Don't send per keystroke, mouse move or timer tick;
+   batch or debounce, and send state, not deltas, so a dropped message heals itself.
+7. **IDs are strings** (`id`, `workspaceId`, `objectId`). Still compare with
+   `String(a) === String(b)` and always send `to` as a string.
+8. **The object data store does not work in production.** Production ovice ignores the
+   legacy `ovice_get_data` / `ovice_save_and_emit_data` messages (the JSON-RPC variants
+   aren't blocked, but the feature is still under development). Never use it for sync or
+   as the only copy of state. In dev builds: 50 KB limit, static objects only (dynamic objects
+   aren't persisted), last-write-wins.
+9. **Message size**: broadcast/emit `message` ≤ 2 MB (checked by the receiver).
+10. **Namespace your `event` names** (e.g. `quiz:answer`). Emits go to *every* custom
+    plugin iframe the target user has open, not only this object's.
+11. **No handshake.** ovice never sends `ovice_confirmation` and ignores `ovice_ready`.
+    Answering `ovice_confirmation` (as the reference client does) is harmless but
+    never wait for it.
+12. **JSON-RPC duplicates.** ovice also posts every event as a JSON-RPC 2.0 notification
+    (`{ jsonrpc: '2.0', method, params }`). Dispatch on `data.type` and ignore the rest.
+13. **`email` is conditional**: only your own, and only if the organisation owner allowed it.
+14. **Visitors/guests** have `isVisitor: true`; decide explicitly whether they can act.
+15. **Use `'*'` as targetOrigin when posting to the parent.** When *receiving*, ignore
+    messages whose `data.type` does not start with `ovice_`, and never `eval`/render
+    untrusted `message` content as HTML. Serve the plugin from the exact registered origin
+    (no redirect): ovice ignores messages from other origins.
+16. **Layout**: the page runs in a small iframe – design for ~300×350 px and full-height
     (`h-screen`) layouts; avoid modals that assume a large viewport.
 
 ## Where to look in this repository
@@ -97,7 +118,8 @@ If the current working directory is the `oviceinc/custom-plugins` repository:
 - Canonical client hook (no-build React): `examples/memo/public/js/hooks/useCustomObjectClient.js`
 - Shared-state cache with leader hand-off: `examples/memo/public/js/hooks/useCacheStore.js`
 - TypeScript/CRA examples: `examples/meeting-cash-clock`, `examples/locate-me`
-- Mock ovice host for local testing: `tools/test/`
+- Mock ovice host for local testing: the `test-ovice-plugin` skill (`tools/test/` is older
+  and much more lenient than real ovice)
 
 Related skills: `create-ovice-plugin` (scaffold a new plugin), `test-ovice-plugin`
 (run it against a mock ovice host).

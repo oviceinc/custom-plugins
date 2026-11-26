@@ -7,6 +7,7 @@
 import {
   type IncomingEvent,
   type ObjectData,
+  type MessageValue,
   type OutgoingEvent,
   type OviceMessage,
   type Participant,
@@ -34,10 +35,12 @@ type EventOf<T extends IncomingEvent['type']> = Extract<IncomingEvent, { type: T
 type Handler<T extends IncomingEvent['type']> = (payload: EventOf<T>['payload']) => void;
 
 export type OviceClientOptions = {
-  /** Also request persisted object data on start (data store is "under development"). */
+  /** Also request persisted object data on start. Production ovice ignores it. */
   loadData?: boolean;
   /** Debounce for re-requesting participants after a participant event. */
   refreshDelayMs?: number;
+  /** Re-request participants periodically (newcomers produce no event). 0 disables. */
+  pollMs?: number;
   /** Log every incoming/outgoing message to the console. */
   debug?: boolean;
 };
@@ -59,7 +62,7 @@ export class OviceClient {
   private readonly options: Required<OviceClientOptions>;
 
   constructor(options: OviceClientOptions = {}) {
-    this.options = { loadData: true, refreshDelayMs: 1000, debug: false, ...options };
+    this.options = { loadData: false, refreshDelayMs: 1000, pollMs: 5000, debug: false, ...options };
   }
 
   /** Start listening. Returns a stop function (use it as a React effect cleanup). */
@@ -68,9 +71,13 @@ export class OviceClient {
     window.addEventListener('message', listener);
     this.requestParticipants();
     if (this.options.loadData) this.requestData();
+    const poll = this.options.pollMs > 0
+      ? setInterval(() => this.requestParticipants(), this.options.pollMs)
+      : undefined;
     return () => {
       window.removeEventListener('message', listener);
       clearTimeout(this.refreshTimer);
+      clearInterval(poll);
     };
   }
 
@@ -106,17 +113,24 @@ export class OviceClient {
     this.post({ type: 'ovice_get_data' });
   }
 
-  /** Send to everyone on the object. Message max 2 MB. You may not receive your own copy. */
-  broadcast(event: string, message: unknown) {
-    this.post({ type: 'ovice_broadcast_message', payload: { event, message } });
+  /**
+   * Send to everyone else on the object (you never get your own copy). Max 2 MB.
+   * Receivers don't learn who sent it: include e.g. `from: self.id` in `message` if needed.
+   * ovice allows 100 broadcast/emit/save requests per minute per iframe.
+   */
+  broadcast(event: string, message: MessageValue = {}) {
+    this.post({ type: 'ovice_broadcast_message', payload: { event, message: message ?? {} } });
   }
 
-  /** Send to one user. Message max 2 MB. */
-  emit(to: string | number, event: string, message: unknown) {
-    this.post({ type: 'ovice_emit_message', payload: { event, message, to: String(to) } });
+  /** Send to one user (not yourself). Max 2 MB. */
+  emit(to: string | number, event: string, message: MessageValue = {}) {
+    this.post({ type: 'ovice_emit_message', payload: { event, message: message ?? {}, to: String(to) } });
   }
 
-  /** Persist the whole object data (max 500 KB, last write wins) and push it to others. */
+  /**
+   * Persist the whole object data (max 50 KB, last write wins) and push it to others.
+   * Production ovice ignores this: never rely on it for sync.
+   */
   saveData(data: ObjectData) {
     this.setSnapshot({ data });
     this.post({ type: 'ovice_save_and_emit_data', payload: data });
@@ -146,8 +160,11 @@ export class OviceClient {
       case 'ovice_shared_data':
         this.setSnapshot({ data: data.payload ?? {} });
         break;
+      case 'ovice_errors':
+        console.warn('[ovice] request rejected:', data.payload);
+        break;
       case 'ovice_confirmation':
-        // Undocumented handshake kept for compatibility with the reference client.
+        // Not sent by ovice today; answered for compatibility with the reference client.
         this.post({ type: 'ovice_ready_confirmed' });
         break;
       default:
