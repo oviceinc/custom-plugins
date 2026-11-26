@@ -57,7 +57,7 @@ const useCacheStore = ({
       if (!currentUsers) return;
       const nextUser = currentUsers.find(u => u.id !== user.id);
       if (nextUser) {
-        emitTo(nextUser.id, eventNames.transferData, cache);
+        emitTo(nextUser.id, eventNames.transferData, cache || {});
       } else {
         if (!validateCacheData(cache)) {
           console.log('validate error');
@@ -97,7 +97,8 @@ const useCacheStore = ({
         setCache(event.message);
         setIsDataOwner(true);
       } else if (event.event === eventNames.requestData) {
-        respondToDataRequest(event.source);
+        // ovice_message has no `source`; the requester puts its id in the message.
+        if (event.message && event.message.from) respondToDataRequest(event.message.from);
       }
     });
   }, [
@@ -118,7 +119,7 @@ const useCacheStore = ({
       ) {
         if (!event.payload.isSelf) return;
         if (cache) return;
-        broadcast(eventNames.requestData, {});
+        broadcast(eventNames.requestData, { from: user.id });
       } else if (
         event.type === 'ovice_participant_unsubscribed' &&
         isDataOwner
@@ -132,7 +133,19 @@ const useCacheStore = ({
         setCache(event.payload);
       }
     });
-  }, [isDataOwner, users, cache, onEvent, broadcast, transferDataToNextUser]);
+  }, [isDataOwner, users, cache, onEvent, broadcast, transferDataToNextUser, user]);
+
+  // ovice loses the newcomer's own subscribed/joined event, so also ask for the current
+  // value as soon as we know who we are, and retry until the leader answers.
+  useEffect(() => {
+    if (!user.id || cache || isDataOwner) return;
+    broadcast(eventNames.requestData, { from: user.id });
+    const t = setInterval(
+      () => broadcast(eventNames.requestData, { from: user.id }),
+      3000
+    );
+    return () => clearInterval(t);
+  }, [user.id, cache, isDataOwner, broadcast]);
 
   useEffect(() => {
     setIsDataOwner(determineDataOwner());
