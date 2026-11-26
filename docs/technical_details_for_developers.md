@@ -12,6 +12,9 @@
   - [Real-time Communication Events](#real-time-communication-events)
   - [Reflected Event](#reflected-event)
   - [Data Management Events](#data-management-events-under-development)
+  - [Error Event](#error-event)
+  - [Other Requests](#other-requests)
+- [Limits and Behaviour Notes](#limits-and-behaviour-notes)
 - [Additional Information for Status:](#additional-information-for-status)
 
 ## Overview
@@ -63,16 +66,16 @@ sequenceDiagram
 - **Description:** Triggered when client requests a list of participants by sending `ovice_get_participants` event
 - **Data Format: Array of Participants**
 
-  - **id** (string or integer): Unique identifier of the user.
+  - **id** (string): Unique identifier of the user.
   - **objectId** (string): Unique identifier of the object that the user is associated with.
   - **objectType** (string): Represents the type of the object (static or dynamic).
   - **name** (string): Name of the user.
   - **avatarUrl** (string): Avatar icon of the user.
   - **workspaceId** (string): Workspace ID of the user.
-  - **language** (string, optional): Preferred language of the user.
-  - **status** (string, optional): Current connection status of the user.
-  - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
-  - **isSelf** (boolean, optional): represents if the user is self.
+  - **email** (string, conditional): Only on the self entry, and only when the owner of the organization grants permission from the custom plugin setting page.
+  - **status** (string): `"joined"` (linked to the object) or `"subscribed"` (within range, not linked). A user who left but is still in range is listed as `"subscribed"`.
+  - **isHost** (boolean): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean): represents if the user is self.
   - **isVisitor** (boolean): represents if the user is visitor or guest.
 
   ```json
@@ -85,25 +88,23 @@ sequenceDiagram
         "objectId": "participantObjectId",
         "objectType": "static",
         "avatarUrl": "<https://example.com/avatar.jpg>",
-        "workspaceId": 987,
+        "workspaceId": "987",
         "isHost": false,
         "isSelf": true,
         "isVisitor": false,
-        "status": "joined",
-        "language": "en"
+        "status": "joined"
       },
       {
-        "id": "123456",
-        "name": "John Doe",
+        "id": "234567",
+        "name": "Jane Roe",
         "objectId": "participantObjectId",
         "objectType": "static",
         "avatarUrl": "<https://example.com/avatar.jpg>",
-        "workspaceId": 987,
+        "workspaceId": "987",
         "isHost": false,
         "isSelf": false,
         "isVisitor": true,
-        "status": "subscribed",
-        "language": "en"
+        "status": "subscribed"
       }
     ]
   }
@@ -112,6 +113,11 @@ sequenceDiagram
 ### Participant Related Events
 
 These events manage the current user's interaction with custom objects.
+
+- Each client produces these events for **its own user only**. The event is posted to that user's iframe with `isSelf: true` and relayed to the other users on the object, who receive the same payload with `isSelf: false` (and without `email`).
+- The payload has **no `status`** field. Derive the status from the event type.
+- The plugin iframe is created when the user comes within range of the object. The user's initial `ovice_participant_subscribed` (and `ovice_participant_joined`, if the user is already linked) is fired before the iframe is ready, so **neither the user nor the others receive it**. Later `joined`, `left` and `unsubscribed` transitions are delivered.
+- Therefore use `ovice_get_participants` on start-up to learn who you are, and request it again after participant events and periodically to notice newcomers.
 
 #### Events Overview
 
@@ -141,14 +147,14 @@ sequenceDiagram
 - **Data Format:**
 
   - **email** (string, conditional): Email address of the user. Provided only when the owner of the organization grants permission from the custom plugin setting page.
-  - **id** (string or integer): Unique identifier of the user.
+  - **id** (string): Unique identifier of the user.
   - **objectId** (string): Unique identifier of the object that the user is associated with.
   - **objectType** (string): Represents the type of the object (static or dynamic).
   - **name** (string): Name of the user.
   - **avatarUrl** (string): Avatar icon of the user.
   - **workspaceId** (string): Workspace ID of the user.
-  - **language** (string, optional): Preferred language of the user.
-  - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
+  - **languge** (string, optional): Preferred language of the user. Note the spelling: the key is sent as `languge`.
+  - **isHost** (boolean): Indicates whether the user is the owner of the dynamic object.
   - **isSelf** (boolean): represents if the user is self.
   - **isVisitor** (boolean): represents if the user is visitor or guest.
 
@@ -162,11 +168,11 @@ sequenceDiagram
       "objectId": "participantObjectId",
       "objectType": "dynamic",
       "avatarUrl": "https://example.com/avatar.jpg",
-      "workspaceId": 987,
+      "workspaceId": "987",
       "isHost": false,
       "isSelf": true,
       "isVisitor": true,
-      "language": "en"
+      "languge": "en"
     }
   }
   ```
@@ -177,15 +183,15 @@ sequenceDiagram
 - **Data Format:**
 
   - **email** (string, conditional): Email address of the user. Provided only when the owner of the organization grants permission from the custom plugin setting page.
-  - **id** (string or integer): Unique identifier of the user.
+  - **id** (string): Unique identifier of the user.
   - **objectId** (string): Unique identifier of the object that the user is associated with.
   - **objectType** (string): Represents the type of the object (static or dynamic).
   - **name** (string): Name of the user.
   - **avatarUrl** (string): Avatar icon of the user.
   - **workspaceId** (string): Workspace ID of the user.
-  - **language** (string, optional): Preferred language of the user.
-  - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
-  - **isSelf** (boolean, optional): represents if the user is self.
+  - **languge** (string, optional): Preferred language of the user. Note the spelling: the key is sent as `languge`.
+  - **isHost** (boolean): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean): represents if the user is self.
   - **isVisitor** (boolean): represents if the user is visitor or guest.
 
   ```json
@@ -198,11 +204,11 @@ sequenceDiagram
       "objectId": "participantObjectId",
       "objectType": "dynamic",
       "avatarUrl": "https://example.com/avatar.jpg",
-      "workspaceId": 987,
+      "workspaceId": "987",
       "isHost": false,
       "isSelf": true,
       "isVisitor": true,
-      "language": "en"
+      "languge": "en"
     }
   }
   ```
@@ -213,15 +219,15 @@ sequenceDiagram
 - **Data Format:**
 
   - **email** (string, conditional): Email address of the user. Provided only when the owner of the organization grants permission from the custom plugin setting page.
-  - **id** (string or integer): Unique identifier of the user.
+  - **id** (string): Unique identifier of the user.
   - **objectId** (string): Unique identifier of the object that the user is associated with.
   - **objectType** (string): Represents the type of the object (static or dynamic).
   - **name** (string): Name of the user.
   - **avatarUrl** (string): Avatar icon of the user.
   - **workspaceId** (string): Workspace ID of the user.
-  - **language** (string, optional): Preferred language of the user.
-  - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
-  - **isSelf** (boolean, optional): represents if the user is self.
+  - **languge** (string, optional): Preferred language of the user. Note the spelling: the key is sent as `languge`.
+  - **isHost** (boolean): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean): represents if the user is self.
   - **isVisitor** (boolean): represents if the user is visitor or guest.
 
   ```json
@@ -234,11 +240,11 @@ sequenceDiagram
       "objectId": "participantObjectId",
       "objectType": "static",
       "avatarUrl": "<https://example.com/avatar.jpg>",
-      "workspaceId": 987,
+      "workspaceId": "987",
       "isHost": true,
       "isSelf": true,
       "isVisitor": true,
-      "language": "en"
+      "languge": "en"
     }
   }
   ```
@@ -249,15 +255,15 @@ sequenceDiagram
 - **Data Format:**
 
   - **email** (string, conditional): Email address of the user. Provided only when the owner of the organization grants permission from the custom plugin setting page.
-  - **id** (string or integer): Unique identifier of the user.
+  - **id** (string): Unique identifier of the user.
   - **objectId** (string): Unique identifier of the object that the user is associated with.
   - **objectType** (string): Represents the type of the object (static or dynamic).
   - **name** (string): Name of the user.
   - **avatarUrl** (string): Avatar icon of the user.
   - **workspaceId** (string): Workspace ID of the user.
-  - **language** (string, optional): Preferred language of the user.
-  - **isHost** (boolean, optional): Indicates whether the user is the owner of the dynamic object.
-  - **isSelf** (boolean, optional): represents if the user is self.
+  - **languge** (string, optional): Preferred language of the user. Note the spelling: the key is sent as `languge`.
+  - **isHost** (boolean): Indicates whether the user is the owner of the dynamic object.
+  - **isSelf** (boolean): represents if the user is self.
   - **isVisitor** (boolean): represents if the user is visitor or guest.
 
   ```json
@@ -270,11 +276,11 @@ sequenceDiagram
       "objectId": "participantObjectId",
       "objectType": "static",
       "avatarUrl": "<https://example.com/avatar.jpg>",
-      "workspaceId": 987,
+      "workspaceId": "987",
       "isHost": false,
       "isSelf": true,
       "isVisitor": true,
-      "language": "en"
+      "languge": "en"
     }
   }
   ```
@@ -283,27 +289,33 @@ sequenceDiagram
 
 Facilitate custom interactions among users who are linked or subscribed to the same object.
 
+The payload of both requests is validated strictly. A request that does not match is **dropped** and an [`ovice_errors`](#error-event) event is sent back to the iframe:
+
+- Only the keys listed below are allowed. Any other key (for example `source` or `objectId`) makes the whole request invalid.
+- **event**: string, 3–256 characters.
+- **message**: required. A number, string, boolean, object, or an array whose items are strings, numbers, booleans or objects. `null`, `undefined` and nested arrays are rejected.
+- **to** (emit only): string, 1–256 characters.
+
+The receivers do not learn who sent a message (see [`ovice_message`](#ovice_message)). If they need to know, include the sender's user id inside `message`.
+
 #### `ovice_broadcast_message`
 
-- **Description:** Allows the client to send their own event to other users that are subscribed to or joined to the same object.
+- **Description:** Allows the client to send their own event to the other users that are subscribed to or joined to the same object. The sender does not receive its own message.
 - **Payload:**
-  - **source** (string): Identifier for the source of the event (user id).
   - **event** (string): The type of event being sent.
-  - **objectId** (string): The unique identifier of the object.
-  - **message** (unknown): The payload of the event, which can be a string, object, array, or number.
+  - **message** (unknown): The payload of the event, which can be a string, number, boolean, object or array.
     - **Note:** The payload size for **`message`** is limited to 2MB.
 - **Additional Behavior:**
 
-  - When the targeted users receive this event, it will be reflected back to the client domain as an `ovice_message`. The payload of the `ovice_message` will include information about the source, event type, object identifier, and the original message payload.
+  - When the targeted users receive this event, it will be reflected back to their client domain as an `ovice_message` whose payload is the payload sent here.
 
   ```json
   {
     "type": "ovice_broadcast_message",
     "payload": {
-      "source": "12",
       "event": "exampleEvent",
-      "objectId": "L124",
       "message": {
+        "from": "12",
         "key1": "value1",
         "key2": 42,
         "key3": ["item1", "item2"]
@@ -314,26 +326,24 @@ Facilitate custom interactions among users who are linked or subscribed to the s
 
 #### `ovice_emit_message`
 
-- **Description:** Allows the client to send their own event to a specific user who has joined or subscribed to the object.
+- **Description:** Allows the client to send their own event to a specific user who has joined or subscribed to the object. Emitting to yourself is ignored.
 - **Payload:**
-  - **source** (string): Identifier for the source of the event (user id).
   - **event** (string): The type of event being sent.
-  - **objectId** (string): The unique identifier of the object.
-  - **message** (unknown): The payload of the event, which can be a string, object, array, or number.
+  - **message** (unknown): The payload of the event, which can be a string, number, boolean, object or array.
     - **Note:** The payload size for **`message`** is limited to 2MB.
-  - **to** (string): The identifier of the specific user to whom the event is targeted.
+  - **to** (string): The identifier of the specific user to whom the event is targeted. Must be a string.
 - **Additional Behavior:**
 
-  - When the targeted user receives this event, it will be reflected back to the client domain as an `ovice_message`. The payload of the `ovice_message` will include information about the source, event type, object identifier, the original message payload, and the identifier of the user to whom the event was targeted (`to`).
+  - When the targeted user receives this event, it will be reflected back to their client domain as an `ovice_message` whose payload is the payload sent here (including `to`).
+  - The message is delivered to every custom plugin iframe the target user has open, so use event names specific to your plugin.
 
   ```json
   {
     "type": "ovice_emit_message",
     "payload": {
-      "source": "12",
       "event": "exampleEvent",
-      "objectId": "L123",
       "message": {
+        "from": "12",
         "key1": "value1",
         "key2": 42,
         "key3": ["item1", "item2"]
@@ -371,21 +381,19 @@ sequenceDiagram
 #### `ovice_message`
 
 - **Description:** Reflects events sent from the client to targeted users back to the client domain.
-- **Payload:**
+- **Payload:** exactly the payload of the original `ovice_broadcast_message` / `ovice_emit_message`. ovice does **not** add the sender (`source`) or the object id (`objectId`).
 
-  - **source** (string): Identifier for the source of the reflected event.
   - **event** (string): The type of reflected event.
-  - **objectId** (string): The unique identifier of the object.
-  - **message** (unknown): The payload of the reflected event, which includes information about the original event.
+  - **message** (unknown): The original message.
+  - **to** (string, emit only): The identifier of the user to whom the event was targeted.
 
   ```json
   {
     "type": "ovice_message",
     "payload": {
-      "source": "12",
       "event": "exampleEvent",
-      "objectId": "L123",
       "message": {
+        "from": "12",
         "key1": "value1",
         "key2": 42,
         "key3": ["item1", "item2"]
@@ -395,6 +403,10 @@ sequenceDiagram
   ```
 
 ### Data Management Events (under development)
+
+> **Not available in production.** Production ovice ignores the `ovice_get_data` and `ovice_save_and_emit_data` requests. Do not use the data store to synchronise users or as the only copy of your state.
+>
+> In development builds the data is persisted for static objects only. Dynamic objects are not persisted: the other users still receive `ovice_shared_data`, but `ovice_get_data` returns `{}` and no `ovice_data_saved_success` is sent.
 
 #### Events Overview
 
@@ -436,7 +448,7 @@ sequenceDiagram
 - **Payload:**
 
   - **payload** (object): Data stored in the object
-    - **Note:** The payload size for **`payload`** is limited to 500KB.
+    - **Note:** The payload size for **`payload`** is limited to 50KB.
 
   ```json
   {
@@ -455,7 +467,7 @@ sequenceDiagram
 - **Payload:**
 
   - **payload** (object): Data stored in the object
-    - **Note:** The payload size for **`payload`** is limited to 500KB.
+    - **Note:** The payload size for **`payload`** is limited to 50KB.
 
   ```json
   {
@@ -474,7 +486,7 @@ sequenceDiagram
 - **Payload:**
 
   - **payload** (object): Data stored in the object
-    - **Note:** The payload size for **`payload`** is limited to 500KB.
+    - **Note:** The payload size for **`payload`** is limited to 50KB.
 
   ```json
   {
@@ -488,24 +500,66 @@ sequenceDiagram
 
 #### `ovice_data_saved_success`
 
-- **Description:** Confirms that the data has been successfully saved in the system, ensuring that the data storage process is complete and reliable.
+- **Description:** Confirms that the data has been successfully saved in the system, ensuring that the data storage process is complete and reliable. Sent to the saving user after the data is stored (saves are throttled to about one per second).
 
 - **Payload:**
 
   - **payload** (object): Data stored in the object
-    - **Note:** The payload size for **`payload`** is limited to 500KB.
-  - **updated_at** (number, optional): Timestamp of updated date and time.
+    - **Note:** The payload size for **`payload`** is limited to 50KB.
 
   ```json
   {
     "type": "ovice_data_saved_success",
     "payload": {
-      "updated_at": 1703214224,
       "value1": "12",
       "value2": "test"
     }
   }
   ```
+
+### Error Event
+
+#### `ovice_errors`
+
+- **Description:** Sent to the iframe when one of its requests is rejected: invalid payload, payload too large, or too many messages.
+- **Payload:** a string or an array of strings describing the problem.
+
+  ```json
+  {
+    "type": "ovice_errors",
+    "payload": [" unrecognized_keys Unrecognized key(s) in object: 'source', 'objectId'"]
+  }
+  ```
+
+### Other Requests
+
+#### `ovice_change_user_state`
+
+- **Description:** Changes the user's availability while they are within range of the object (`in_range`) or when they leave it (`out_of_range`).
+
+  ```json
+  {
+    "type": "ovice_change_user_state",
+    "payload": { "action": "in_range", "status": "busy" }
+  }
+  ```
+
+  - **action**: `"in_range"` or `"out_of_range"`.
+  - **status**: `"available"` or `"busy"`.
+
+#### JSON-RPC 2.0
+
+The same requests can also be sent as JSON-RPC 2.0 requests (`{ "jsonrpc": "2.0", "id": 1, "method": "ovice_broadcast_message", "params": { ... } }`). They are answered with a JSON-RPC response (`result` or `error`) and validated with the same rules.
+
+ovice also posts every event a second time as a JSON-RPC 2.0 notification (`{ "jsonrpc": "2.0", "method": "ovice_message", "params": { ... } }`). Clients that use the `{ type, payload }` format should ignore messages without a `type`.
+
+## Limits and Behaviour Notes
+
+- **Rate limit:** at most 100 `ovice_broadcast_message`, `ovice_emit_message` and `ovice_save_and_emit_data` requests per minute per iframe. Further requests are dropped and `ovice_errors` is sent ("You're sending too many messages."). Avoid sending on every keystroke, mouse move or timer tick.
+- **Message size:** `message` of broadcast/emit is limited to 2MB. Object data is limited to 50KB.
+- **IDs** (`id`, `objectId`, `workspaceId`, `to`) are strings.
+- **No handshake:** ovice does not send `ovice_confirmation` and ignores `ovice_ready`. Do not wait for either before starting.
+- **Origin:** post to the parent with `'*'` as the target origin. ovice only accepts messages from the origin of the registered plugin URL, so do not redirect to another origin.
 
 ## Additional Information for Status:
 

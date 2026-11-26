@@ -3,7 +3,7 @@
 Sources: the public spec `docs/technical_details_for_developers.md` in
 [oviceinc/custom-plugins](https://github.com/oviceinc/custom-plugins), checked against the
 real host implementation in ovice-ui (`routes/workspace/SpaceObject/plugins/custom_plugin.tsx`,
-`CustomPlugin/schema.ts`). Where they disagree, this file follows the host and says so.
+`CustomPlugin/schema.ts`). Older copies of the spec differ in places; this file follows the host.
 
 All legacy messages have the shape `{ type: string, payload?: unknown }`. ovice also posts
 every event a second time as a JSON-RPC 2.0 notification
@@ -126,8 +126,8 @@ and post `ovice_errors`:
 | `event` | string, 3–256 chars |
 | `message` | number \| string \| boolean \| object \| array of (string \| number \| boolean \| object). Required. `null`, `undefined` and nested arrays are rejected. Max 2 MB. |
 
-> The public spec shows `source` and `objectId` inside this payload. **Don't send them**:
-> the real host rejects the request.
+> Older versions of the spec showed `source` and `objectId` inside this payload. **Don't send
+> them**: the real host rejects the request.
 
 ### `ovice_emit_message` (plugin → ovice)
 
@@ -154,7 +154,7 @@ How broadcast/emit messages arrive. `payload` is **exactly what the sender poste
 { "type": "ovice_message", "payload": { "event": "quiz:state", "message": { "from": "123456", "round": 2 }, "to": "123" } }
 ```
 
-There is **no `source` and no `objectId`** (the spec says otherwise). Put the sender id in
+There is **no `source` and no `objectId`** (older versions of the spec said otherwise). Put the sender id in
 `message` yourself when receivers need it.
 
 ```mermaid

@@ -59,12 +59,12 @@ const isGameMaster = user.isHost || (isStaticObject && isJoined);
 ## Rules and gotchas (check these whenever writing or reviewing plugin code)
 
 These come from the real host (ovice-ui `routes/workspace/SpaceObject/plugins/custom_plugin.tsx`
-and `CustomPlugin/schema.ts`). The public spec and older examples differ in places; the host wins.
+and `CustomPlugin/schema.ts`). Older copies of the spec and the examples differ in places; the host wins.
 
 1. **Send only `{ event, message }` (+ `to`).** The host validates broadcast/emit payloads
    with a *strict* schema. With any extra key (`source`, `objectId`, `from`, …) the request
-   is **silently dropped** (you only get `ovice_errors`). The spec's examples that include
-   `source`/`objectId` in the payload are wrong. Also: `event` 3–256 chars; `message`
+   is **silently dropped** (you only get `ovice_errors`). Older versions of the spec showed
+   `source`/`objectId` in the payload; that is wrong. Also: `event` 3–256 chars; `message`
    must be number / string / boolean / object / array of (string | number | boolean | object)
    — `null`, `undefined` (or omitting it) and nested arrays are rejected; `to` must be a string.
 2. **Received messages have no sender id.** `ovice_message.payload` is exactly what the
