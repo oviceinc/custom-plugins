@@ -47,6 +47,11 @@
   <label title="Deliver broadcasts back to the sender too, to check your plugin tolerates it"><input id="echo" type="checkbox" /> echo broadcast</label>
   <label title="Include email in participant events"><input id="email" type="checkbox" /> email</label>
   <button id="apply">Apply / reload</button>
+  <span title="Simulate a user who was not there at startup: a new iframe loads mid-session and everyone gets ovice_participant_&lt;status&gt;">
+    <button id="addUser">+ Add late user</button>
+    as <select id="lateStatus"><option>subscribed</option><option>joined</option></select>
+    <label><input id="lateVisitor" type="checkbox" /> visitor</label>
+  </span>
 </header>
 <main>
   <section id="users"></section>
@@ -74,7 +79,8 @@
   $('type').value = params.get('type') === 'dynamic' ? 'dynamic' : 'static';
   $('count').value = params.get('users') || 4;
 
-  let users = [];      // { id, name, status, isVisitor, isHost, iframe, win }
+  const MAX_USERS = 20; // initial count is capped at 12; "+ Add late user" may go up to this
+  let users = [];      // { id, name, status, isVisitor, isHost, late, win }
   let store = {};
   const byteSize = v => new Blob([JSON.stringify(v ?? null)]).size;
 
@@ -84,7 +90,7 @@
     if ($('hideParticipants').checked && isParticipant && kind !== 'err') return;
     const el = document.createElement('div');
     el.className = kind;
-    const arrow = { in: `user${who} → ovice`, out: `ovice → user${who}`, err: `ERROR user${who}`, warn: `WARN user${who}` }[kind];
+    const arrow = { in: `user${who} → ovice`, out: `ovice → user${who}`, err: `ERROR user${who}`, warn: `WARN user${who}`, info: `---- user${who}` }[kind];
     el.textContent = `${new Date().toLocaleTimeString()} ${arrow} ${typeof data === 'string' ? data : JSON.stringify(data)}`;
     $('log').appendChild(el);
     $('log').scrollTop = $('log').scrollHeight;
@@ -217,24 +223,42 @@
       isHost: dynamic && i === 0,
       win: null,
     }));
-    users.forEach(u => {
-      const box = document.createElement('div');
-      box.className = 'user'; box.id = `user-${u.id}`;
-      box.innerHTML = `
-        <div class="bar">
-          <strong>${u.name}</strong>
-          ${u.isHost ? '<span title="owner of dynamic object">★ host</span>' : ''}
-          <label><input type="checkbox" class="visitor" ${u.isVisitor ? 'checked' : ''}/> visitor</label>
-          <select class="status">${['subscribed', 'joined', 'left', 'unsubscribed'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
-          <button class="reload" title="reload this iframe">⟳</button>
-        </div>
-        <div class="slot"></div>`;
-      box.querySelector('.status').addEventListener('change', e => setStatus(u, e.target.value));
-      box.querySelector('.visitor').addEventListener('change', e => { u.isVisitor = e.target.checked; });
-      box.querySelector('.reload').addEventListener('click', () => mount(u));
-      $('users').appendChild(box);
-      mount(u);
-    });
+    users.forEach(addBox);
+  }
+
+  function addBox(u) {
+    const box = document.createElement('div');
+    box.className = 'user'; box.id = `user-${u.id}`;
+    box.innerHTML = `
+      <div class="bar">
+        <strong>${u.name}</strong>
+        ${u.isHost ? '<span title="owner of dynamic object">★ host</span>' : ''}
+        ${u.late ? '<span class="muted" title="added after startup">(late)</span>' : ''}
+        <label><input type="checkbox" class="visitor" ${u.isVisitor ? 'checked' : ''}/> visitor</label>
+        <select class="status">${['subscribed', 'joined', 'left', 'unsubscribed'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+        <button class="reload" title="reload this iframe">⟳</button>
+      </div>
+      <div class="slot"></div>`;
+    box.querySelector('.status').addEventListener('change', e => setStatus(u, e.target.value));
+    box.querySelector('.visitor').addEventListener('change', e => { u.isVisitor = e.target.checked; });
+    box.querySelector('.reload').addEventListener('click', () => mount(u));
+    $('users').appendChild(box);
+    mount(u);
+  }
+
+  // A brand-new user enters the object's range mid-session: its iframe loads from scratch
+  // (no prior state) and, once loaded, every iframe gets ovice_participant_<status>.
+  function addUser() {
+    if (!$('url').value.trim() || !users.length) { build(); return; }
+    if (users.length >= MAX_USERS) { alert(`Max ${MAX_USERS} users`); return; }
+    const id = String(Math.max(...users.map(u => Number(u.id))) + 1);
+    const u = {
+      id, name: `User ${id}`, status: $('lateStatus').value,
+      isVisitor: $('lateVisitor').checked, isHost: false, late: true, win: null,
+    };
+    users.push(u);
+    log('info', id, `late joiner added (${u.status}${u.isVisitor ? ', visitor' : ''})`);
+    addBox(u);
   }
 
   function renderStore() {
@@ -249,6 +273,7 @@
   $('clearData').addEventListener('click', () => { store = {}; renderStore(); });
   $('clearLog').addEventListener('click', () => { $('log').innerHTML = ''; });
   $('apply').addEventListener('click', build);
+  $('addUser').addEventListener('click', addUser);
   $('url').addEventListener('keydown', e => { if (e.key === 'Enter') build(); });
   renderStore();
   build();

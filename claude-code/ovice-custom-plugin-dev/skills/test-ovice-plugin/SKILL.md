@@ -38,7 +38,11 @@ What it simulates:
 - Users 1–2 `joined`, the rest `subscribed`; the last user is a visitor (when > 2 users).
 - `dynamic` makes User 1 the host (`isHost: true`); `static` has no host.
 - Per-user status dropdown → sends `ovice_participant_<status>` to every iframe.
-  `unsubscribed` unloads that iframe; switching back reloads it (= late joiner).
+  `unsubscribed` unloads that iframe; switching back reloads it (= returning user).
+- **+ Add late user** (header) → a brand-new user (next id, marked `(late)`) who was not
+  there at startup: its iframe loads mid-session with no prior state, then every iframe gets
+  `ovice_participant_subscribed` (or `joined`, per the select; optionally as a visitor).
+  Up to 20 users in total.
 - `ovice_get_participants`, `ovice_get_data`, `ovice_save_and_emit_data`
   (→ `ovice_data_saved_success` to sender, `ovice_shared_data` to others),
   `ovice_broadcast_message` / `ovice_emit_message` (→ `ovice_message` with `source`).
@@ -55,8 +59,11 @@ Drive the iframes (click inside them) and watch the log. Check at least:
 1. **Startup** – every iframe sends `ovice_get_participants` and shows the right self user.
 2. **Sync** – an action in User 1 shows up in User 2 (and not twice in User 1, also with
    *echo broadcast* on).
-3. **Late joiner** – set User 3 to `unsubscribed`, act in User 1, set User 3 back to
-   `subscribed`: it must catch up to the current state.
+3. **Late joiner** – act in User 1 (and User 2) first, then press **+ Add late user**:
+   the new user must catch up to the current state, and the existing users must handle the
+   newcomer (e.g. add it to lists, re-send state). Repeat with the select on `joined`, and
+   add two late users back to back to catch double-sync / leader-election races.
+   Also check a returning user: set User 3 to `unsubscribed`, act in User 1, set it back.
 4. **Leader leaves** – set the leader (User 1) to `unsubscribed`: another user takes over
    and state is kept (and backed up to the data store if the plugin does that).
 5. **Roles** – repeat with `type=dynamic`; check host-only controls and visitor handling.
