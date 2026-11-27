@@ -15,7 +15,8 @@ Ask briefly, or pick sensible defaults and say so:
 - **What it does** and **who may act** (everyone / only the linked users / only the
   dynamic-object owner / only one leader).
 - **State model** — pick from the table in `ovice-plugin-api/references/patterns.md`:
-  participants-only, broadcast events, leader-owned shared cache, or persisted data.
+  participants-only, broadcast events or leader-owned shared cache. The object data store
+  is ignored by production ovice, so never choose it as the sync mechanism.
 - **Stack**:
   - **No-build** (default for small plugins, and inside the `oviceinc/custom-plugins` repo
     under `examples/`): static HTML + React 17 UMD + Babel standalone + Tailwind CDN. Deploys
@@ -47,7 +48,8 @@ Files:
   `examples/` keep only the last handler, which silently breaks `useCacheStore` if the app
   registers its own handler on the same channel.)
 - `js/hooks/useCacheStore.js` — leader-owned shared object (`cache`, `updateCache`), with
-  hand-off when the leader leaves and optional backup to the object data store.
+  hand-off when the leader leaves, late-joiner catch-up, and optional backup to the object
+  data store (dev builds of ovice only).
 - `js/app.js` — starter UI: shared counter (cache), broadcast "wave", participant list.
 
 When adding a plugin to the `oviceinc/custom-plugins` repo, follow the existing layout
@@ -66,20 +68,27 @@ and replace the placeholders. Files:
 - `src/ovice/types.ts` — typed incoming/outgoing events, `normalizeParticipant` (ids → strings).
 - `src/ovice/client.ts` — `OviceClient`: `start()`, `subscribe/getSnapshot` (self,
   participants, data, `isStaticObject`, `isJoined`, `isLeader`), `on(type)`,
-  `onMessage(event)`, `broadcast`, `emit`, `saveData`; auto-refreshes participants and
-  answers the `ovice_confirmation` handshake.
+  `onMessage(event)`, `broadcast`, `emit`, `saveData`; refreshes participants after
+  events and every 5 s, and logs `ovice_errors`.
 - `src/ovice/useOvice.ts` — `useOvice()` and `useOviceMessage(client, event, handler)`.
 - `src/App.tsx` — starter UI.
 
 ## 3. Implement the feature
 
-- Prefix every custom event name with `<plugin-id>:`.
-- Put all data a receiver needs inside `message` (including timestamps / sender name).
-- Update local state optimistically before `broadcast`.
+- Send only through the template's `broadcast` / `emit(To)`. Never add keys next to
+  `event` / `message` (`source`, `objectId`, …): ovice drops the whole request.
+- Prefix every custom event name with `<plugin-id>:` (3–256 chars).
+- Put all data a receiver needs inside `message`, **including the sender id**
+  (`from: self.id`): delivered messages carry no `source`.
+- Update local state optimistically before `broadcast` (you never get your own copy).
+- Stay well under 100 broadcast/emit/save per minute: no sending per keystroke, mouse move
+  or timer tick; send full state so a dropped message heals itself.
 - Gate controls with the chosen role (`isHost`, `isMaster`/`isLeader`, `isJoined`,
   `!isVisitor`).
-- Late joiners: either use `useCacheStore`, or have the leader `emit` current state when it
-  sees another user's `ovice_participant_joined`/`subscribed`.
+- Late joiners: ovice sends no event when someone comes into range, so the newcomer must
+  ask (broadcast `request-state` with `from`, retry until answered) and the leader emits the
+  state to `message.from`. `useCacheStore` already does this.
+- Don't wait for `ovice_confirmation` or for a participant event before starting.
 - Design for a ~300×350 px iframe.
 
 ## 4. Verify before handing back
@@ -88,10 +97,13 @@ Run the `test-ovice-plugin` skill: open the plugin in the mock ovice host with s
 simulated users, and check with at least two users that:
 
 - [ ] each iframe shows the right self user and participant list;
-- [ ] actions by one user appear for the others (broadcast/emit);
+- [ ] actions by one user appear for the others (broadcast/emit), with no `ovice_errors`
+      (red ERROR lines) in the mock host log;
 - [ ] a late joiner gets the current state;
 - [ ] role gating works for static **and** dynamic object types;
-- [ ] no console errors; message/data payloads stay under 2 MB / 500 KB.
+- [ ] everything works with *production* (data store off) ticked;
+- [ ] the per-user send counter stays well under 100 per minute;
+- [ ] no console errors.
 
 Finally tell the user how to deploy: host the folder (no-build) or `dist/` (Vite) on any
 HTTPS static host, then register that URL as a custom plugin in ovice's admin settings.

@@ -17,11 +17,11 @@ class Participant {
   }
 }
 
+// ovice delivers exactly what the sender posted: { event, message, to? }.
+// There is no `source`/`objectId`; put the sender id inside `message` when you need it.
 class Message {
   constructor(data = {}) {
-    this.source = data.source;
     this.event = data.event;
-    this.objectId = data.objectId;
     this.message = data.message;
     this.to = data.to && data.to.toString(); // Optional, only used for direct messages
   }
@@ -88,26 +88,28 @@ function useMessageEmitter(user) {
     },
     [window]
   );
+  // ovice validates the payload strictly: only { event, message } (+ to). `message` must not
+  // be null/undefined, so it defaults to {}. Max 100 broadcast/emit/save per minute.
   const broadcast = useCallback(
-    (event, message) => {
+    (event, message = {}) => {
       postMessage({
         type: 'ovice_broadcast_message',
         payload: {
           event: event,
-          message: message,
+          message: message == null ? {} : message,
         },
       });
     },
     [user, postMessage]
   );
   const emitTo = useCallback(
-    (userId, event, message) => {
+    (userId, event, message = {}) => {
       postMessage({
         type: 'ovice_emit_message',
         payload: {
           event: event,
-          message: message,
-          to: userId,
+          message: message == null ? {} : message,
+          to: String(userId),
         },
       });
     },
@@ -195,7 +197,11 @@ function useCustomObjectClient() {
   // Message handler
   const handleMessage = useCallback(
     event => {
-      const eventInstance = new MessageEvent(event.data);
+      // ovice also posts each event as a JSON-RPC notification ({ jsonrpc, method, params });
+      // only handle the legacy { type: 'ovice_*' } form.
+      const data = event.data;
+      if (!data || typeof data.type !== 'string' || !data.type.startsWith('ovice_')) return;
+      const eventInstance = new MessageEvent(data);
       eventFunction.current && eventFunction.current(eventInstance);
       setLastMessage(event.data);
       switch (eventInstance.type) {
@@ -221,6 +227,7 @@ function useCustomObjectClient() {
           userEventFunction.current && userEventFunction.current(participant);
           break;
         case 'ovice_confirmation':
+          // ovice does not send this today; kept for compatibility with the examples.
           postMessage({ type: 'ovice_ready_confirmed' });
           break;
         case 'ovice_shared_data':
@@ -232,6 +239,9 @@ function useCustomObjectClient() {
         case 'ovice_data_saved_success':
           storeEventFunction.current &&
             storeEventFunction.current(eventInstance);
+          break;
+        case 'ovice_errors':
+          console.warn('[ovice] request rejected:', eventInstance.payload);
           break;
         case 'ovice_message':
           const message = new Message(eventInstance.payload);
@@ -267,6 +277,12 @@ function useCustomObjectClient() {
       }
     };
   }, [lastMessage, updateUsers]);
+  // Polling: a newcomer's arrival produces no participant event in ovice, so refresh
+  // the list periodically as well.
+  useEffect(() => {
+    const id = setInterval(updateUsers, 5000);
+    return () => clearInterval(id);
+  }, [updateUsers]);
   // Returning the set of values provided by the custom hook
   return {
     user,

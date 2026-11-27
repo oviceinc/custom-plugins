@@ -11,7 +11,8 @@ function App() {
     client;
 
   // Shared state: everyone on this object sees the same `cache`.
-  // enableBackup: true also persists it to the object data store when the last user leaves.
+  // enableBackup: true also persists it to the object data store when the last user leaves
+  // (development builds of ovice only: production ovice ignores the data store).
   const { cache, updateCache } = useCacheStore({ ...client, enableBackup: true });
   const count = Number(cache.count || 0);
 

@@ -7,8 +7,21 @@
 <!--
   Mock ovice host for Custom Plugin development.
   Loads one plugin URL into several iframes (one per simulated user) and implements the
-  ovice postMessage protocol between them: participants, status events, broadcast/emit,
-  object data store. No dependencies.
+  ovice postMessage protocol between them, following the real host
+  (ovice-ui: routes/workspace/SpaceObject/plugins/custom_plugin.tsx + CustomPlugin/schema.ts):
+
+  - broadcast/emit payloads are validated strictly: only {event, message} (+ `to` for emit);
+    `event` 3-256 chars; `message` must be number | string | boolean | object |
+    array of (string | number | boolean | object). Invalid requests are dropped and the
+    sender gets `ovice_errors`.
+  - `ovice_message` carries exactly what the sender sent ({event, message[, to]}):
+    NO `source`, NO `objectId`.
+  - broadcasts never come back to the sender; emits to yourself are ignored.
+  - 100 broadcast/emit/save requests per minute per iframe; the rest are dropped.
+  - the plugin iframe only exists while the user is in range, and the user's first
+    subscribed/joined event fires before the iframe is ready, so nobody receives it.
+  - production ovice ignores ovice_get_data / ovice_save_and_emit_data.
+  - every event is also posted as a JSON-RPC 2.0 notification ({jsonrpc, method, params}).
 
   Open as:  mock-host.html?url=http://localhost:5173/&users=4&type=static
 -->
@@ -26,6 +39,8 @@
   .user { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px; }
   .user.gone { opacity:.55; }
   .user .bar { display:flex; gap:6px; align-items:center; margin-bottom:4px; flex-wrap:wrap; }
+  .user .rate { color:var(--muted); font-size:11px; }
+  .user .rate.full { color:var(--err); font-weight:bold; }
   .user iframe { display:block; border:1px solid var(--line); background:#fff; }
   .placeholder { display:flex; align-items:center; justify-content:center; color:var(--muted); border:1px dashed var(--line); }
   aside { display:flex; flex-direction:column; gap:8px; min-width:0; }
@@ -44,10 +59,10 @@
   <label>Object <select id="type"><option>static</option><option>dynamic</option></select></label>
   <label>Users <input id="count" type="number" min="1" max="12" value="4" style="width:52px" /></label>
   <label>Size <input id="w" type="number" value="300" style="width:58px" />×<input id="h" type="number" value="350" style="width:58px" /></label>
-  <label title="Deliver broadcasts back to the sender too, to check your plugin tolerates it"><input id="echo" type="checkbox" /> echo broadcast</label>
-  <label title="Include email in participant events"><input id="email" type="checkbox" /> email</label>
+  <label title="Production ovice ignores ovice_get_data / ovice_save_and_emit_data. Untick to simulate a development build."><input id="prod" type="checkbox" checked /> production (data store off)</label>
+  <label title="Org owner allowed email in the custom plugin settings: own email only"><input id="email" type="checkbox" /> email</label>
   <button id="apply">Apply / reload</button>
-  <span title="Simulate a user who was not there at startup: a new iframe loads mid-session and everyone gets ovice_participant_&lt;status&gt;">
+  <span title="Simulate a user who was not there at startup: a new iframe loads mid-session. Like ovice, no participant event is sent for it; the others only see it via ovice_get_participants.">
     <button id="addUser">+ Add late user</button>
     as <select id="lateStatus"><option>subscribed</option><option>joined</option></select>
     <label><input id="lateVisitor" type="checkbox" /> visitor</label>
@@ -64,15 +79,30 @@
     <div class="panel">
       <h3>Messages <span><label><input id="hideParticipants" type="checkbox" /> hide participant traffic</label> <button id="clearLog">clear</button></span></h3>
       <div id="log"></div>
+      <div class="muted">JSON-RPC duplicates of each event are sent but not logged.</div>
     </div>
   </aside>
 </main>
 <script>
 (() => {
-  const MESSAGE_LIMIT = 2 * 1024 * 1024; // ovice_broadcast/emit message
-  const DATA_LIMIT = 500 * 1024;         // object data payload
+  // ---------- limits (same as ovice-ui) ----------
+  const MESSAGE_LIMIT = 2 * 1024 * 1024; // broadcast/emit payload, checked on the receiving side
+  const DATA_LIMIT = 50 * 1024;          // ovice_save_and_emit_data payload
+  const RATE_LIMIT = 100;                // broadcast + emit + save per iframe ...
+  const RATE_WINDOW = 60 * 1000;         // ... per minute
+  const STRING_MAX = 256;
   const OBJECT_ID = 'mock-object-1';
-  const WORKSPACE_ID = 987;              // number on purpose: real payloads may use numbers
+  const WORKSPACE_ID = '987';            // ovice sends workspaceId as a string
+  const JSONRPC_NOTIFICATIONS = new Set([
+    'ovice_participant_joined', 'ovice_participant_left', 'ovice_participant_subscribed',
+    'ovice_participant_unsubscribed', 'ovice_message', 'ovice_shared_data',
+    'ovice_data_saved_success', 'ovice_errors',
+  ]);
+  const LEGACY_REQUESTS = new Set([
+    'ovice_get_participants', 'ovice_broadcast_message', 'ovice_emit_message',
+    'ovice_save_and_emit_data', 'ovice_get_data', 'ovice_change_user_state',
+  ]);
+
   const $ = id => document.getElementById(id);
   const params = new URLSearchParams(location.search);
   $('url').value = params.get('url') || '';
@@ -80,9 +110,10 @@
   $('count').value = params.get('users') || 4;
 
   const MAX_USERS = 20; // initial count is capped at 12; "+ Add late user" may go up to this
-  let users = [];      // { id, name, status, isVisitor, isHost, late, win }
+  let users = [];      // { n, id, name, status, isVisitor, isHost, late, win, rate }
   let store = {};
-  const byteSize = v => new Blob([JSON.stringify(v ?? null)]).size;
+  const byteSize = v => new TextEncoder().encode(JSON.stringify(v ?? null)).length;
+  const isRecord = v => typeof v === 'object' && v !== null && !Array.isArray(v);
 
   // ---------- logging ----------
   function log(kind, who, data) {
@@ -99,73 +130,149 @@
   // ---------- participants ----------
   const inRange = u => u.status !== 'unsubscribed';
   const avatar = u => 'data:image/svg+xml,' + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="hsl(${u.id * 67 % 360},60%,55%)"/><text x="32" y="42" font-size="28" text-anchor="middle" fill="#fff" font-family="sans-serif">${u.id}</text></svg>`);
-  function participant(u, selfId, withEmail) {
+    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="hsl(${u.n * 67 % 360},60%,55%)"/><text x="32" y="42" font-size="28" text-anchor="middle" fill="#fff" font-family="sans-serif">${u.n}</text></svg>`);
+  const email = u => `user${u.n}@example.com`;
+
+  // Entry of the ovice_participants reply. Status is only ever "joined" or "subscribed".
+  function listEntry(u, selfId) {
+    const isSelf = u.id === selfId;
     const p = {
-      id: u.id, name: u.name, objectId: OBJECT_ID, objectType: $('type').value,
-      avatarUrl: avatar(u), workspaceId: WORKSPACE_ID,
-      isHost: u.isHost, isSelf: u.id === selfId, isVisitor: u.isVisitor, status: u.status, language: 'en',
+      id: u.id, objectId: OBJECT_ID, name: u.name, avatarUrl: avatar(u),
+      workspaceId: WORKSPACE_ID, isHost: u.isHost,
+      status: u.status === 'joined' ? 'joined' : 'subscribed',
+      isSelf, isVisitor: u.isVisitor, objectType: $('type').value,
     };
-    if (withEmail && $('email').checked) p.email = `user${u.id}@example.com`;
+    if (isSelf && $('email').checked) p.email = email(u);
     return p;
   }
+  // Payload of ovice_participant_* events. No `status`; the language key is spelled `languge`.
+  function eventPayload(u, isSelf) {
+    const p = {
+      id: u.id, name: u.name, avatarUrl: avatar(u), objectId: OBJECT_ID,
+      workspaceId: WORKSPACE_ID, isHost: u.isHost, objectType: $('type').value,
+      isSelf, isVisitor: u.isVisitor, languge: 'en',
+    };
+    if (isSelf && $('email').checked) p.email = email(u);
+    return p;
+  }
+
   function send(u, message) {
     if (!u.win) return;
     log('out', u.id, message);
+    if (JSONRPC_NOTIFICATIONS.has(message.type)) {
+      const params = message.type === 'ovice_errors' ? { message: message.payload } : message.payload;
+      u.win.postMessage({ jsonrpc: '2.0', method: message.type, params }, '*');
+    }
     u.win.postMessage(message, '*');
   }
-  function announce(changed) {
-    // Status events go to every mounted iframe (isSelf tells them apart).
-    users.filter(u => u.win).forEach(u =>
-      send(u, { type: `ovice_participant_${changed.status}`, payload: participant(changed, u.id, true) }));
+  const sendError = (u, errors) => { log('err', u.id, [].concat(errors).join('; ')); send(u, { type: 'ovice_errors', payload: errors }); };
+  // Everyone else whose iframe is on the object (ovice relays via the object channel and
+  // drops messages whose source is the receiver).
+  const others = u => users.filter(x => x !== u && x.win && inRange(x));
+
+  // A user's own status event: to their own iframe, then relayed to the others with isSelf=false.
+  function announce(u, type) {
+    send(u, { type, payload: eventPayload(u, true) });
+    others(u).forEach(x => send(x, { type, payload: eventPayload(u, false) }));
+  }
+
+  // ---------- validation (mirrors CustomPlugin/schema.ts) ----------
+  function validMessageValue(m) {
+    if (['number', 'string', 'boolean'].includes(typeof m)) return true;
+    if (Array.isArray(m)) return m.every(v => ['number', 'string', 'boolean'].includes(typeof v) || isRecord(v));
+    return isRecord(m);
+  }
+  function validateSendPayload(payload, withTo) {
+    if (!isRecord(payload)) return [' invalid_type payload must be an object {event, message' + (withTo ? ', to' : '') + '}'];
+    const errors = [];
+    const allowed = withTo ? ['event', 'to', 'message'] : ['event', 'message'];
+    const extra = Object.keys(payload).filter(k => !allowed.includes(k));
+    if (extra.length) errors.push(` unrecognized_keys Unrecognized key(s) in object: ${extra.map(k => `'${k}'`).join(', ')}`);
+    const { event } = payload;
+    if (typeof event !== 'string') errors.push('/event invalid_type event must be a string');
+    else if (event.length < 3) errors.push('/event too_small event must be at least 3 characters');
+    else if (event.length > STRING_MAX) errors.push(`/event too_big event must be at most ${STRING_MAX} characters`);
+    if (!validMessageValue(payload.message)) errors.push('/message invalid_union message must be number | string | boolean | object | array of (string | number | boolean | object); null/undefined/nested arrays are rejected');
+    if (withTo) {
+      if (typeof payload.to !== 'string') errors.push('/to invalid_type to must be a string');
+      else if (!payload.to.length || payload.to.length > STRING_MAX) errors.push('/to too_small|too_big to must be 1-256 characters');
+    }
+    return errors;
+  }
+
+  function allowed(u) {
+    const now = Date.now();
+    if (now - u.rate.since > RATE_WINDOW) { u.rate.since = now; u.rate.count = 0; }
+    renderRate(u);
+    if (u.rate.count < RATE_LIMIT) { u.rate.count++; renderRate(u); return true; }
+    sendError(u, "You're sending too many messages.");
+    return false;
   }
 
   // ---------- protocol ----------
   function handle(u, data) {
-    if (!data || typeof data.type !== 'string') return;
+    if (!isRecord(data)) return;
+    if (data.jsonrpc === '2.0') { log('warn', u.id, `JSON-RPC request "${data.method}" is not simulated by the mock host`); return; }
+    if (typeof data.type !== 'string') return;
     log('in', u.id, data);
     const { type, payload } = data;
+    if (!LEGACY_REQUESTS.has(type)) {
+      const hint = type === 'ovice_ready' ? ' — ovice never answers it (no ovice_confirmation); do not wait for a handshake' : '';
+      log('warn', u.id, `"${type}" is ignored by ovice${hint}`);
+      return;
+    }
+    const prod = $('prod').checked;
     switch (type) {
       case 'ovice_get_participants':
-        send(u, { type: 'ovice_participants', payload: users.filter(inRange).map(x => participant(x, u.id, false)) });
+        send(u, { type: 'ovice_participants', payload: users.filter(inRange).map(x => listEntry(x, u.id)) });
         break;
+
       case 'ovice_get_data':
-        send(u, { type: 'ovice_saved_data', payload: store });
+        if (prod) { log('warn', u.id, 'ovice_get_data is ignored by production ovice (untick "production" to simulate a dev build)'); break; }
+        // Dynamic objects have no persisted data.
+        send(u, { type: 'ovice_saved_data', payload: $('type').value === 'static' ? store : {} });
         break;
+
       case 'ovice_save_and_emit_data': {
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload)) { log('err', u.id, 'save_and_emit_data payload must be an object'); break; }
-        const size = byteSize(payload);
-        if (size > DATA_LIMIT) { log('err', u.id, `data payload ${size} bytes > 500KB limit`); break; }
-        store = payload; renderStore();
-        users.filter(x => x.win && inRange(x)).forEach(x => x === u
-          ? send(x, { type: 'ovice_data_saved_success', payload: { ...payload, updated_at: Math.floor(Date.now() / 1000) } })
-          : send(x, { type: 'ovice_shared_data', payload }));
+        if (prod) { log('warn', u.id, 'ovice_save_and_emit_data is ignored by production ovice: nothing is saved or shared'); break; }
+        const extra = Object.keys(data).filter(k => !['type', 'source', 'payload'].includes(k));
+        if (!isRecord(payload) || extra.length) { sendError(u, [`/payload invalid_type payload must be a plain object${extra.length ? `; unrecognized key(s): ${extra.join(', ')}` : ''}`]); break; }
+        if (byteSize(payload) > DATA_LIMIT) { sendError(u, 'Maximum allowed payload size is 2MB'); log('err', u.id, `(real limit for data is 50KB, got ${byteSize(payload)} bytes)`); break; }
+        if ($('type').value === 'static') {
+          // Persisted through the API (throttled ~1 s), then the sender gets the saved data.
+          clearTimeout(u.saveTimer);
+          u.saveTimer = setTimeout(() => {
+            store = payload; renderStore();
+            send(u, { type: 'ovice_data_saved_success', payload });
+          }, 1000);
+        } else {
+          log('warn', u.id, 'dynamic object: data is shared but not persisted, and no ovice_data_saved_success is sent');
+        }
+        if (!allowed(u)) break;
+        others(u).forEach(x => send(x, { type: 'ovice_shared_data', payload }));
         break;
       }
+
       case 'ovice_broadcast_message':
       case 'ovice_emit_message': {
-        if (!payload || typeof payload.event !== 'string') { log('err', u.id, `${type} needs payload.event (string)`); break; }
-        const size = byteSize(payload.message);
-        if (size > MESSAGE_LIMIT) { log('err', u.id, `message ${size} bytes > 2MB limit`); break; }
-        const out = { source: u.id, event: payload.event, objectId: OBJECT_ID, message: payload.message };
-        if (type === 'ovice_emit_message') {
-          if (typeof payload.to !== 'string') log('warn', u.id, `emit "to" should be a string, got ${typeof payload.to}`);
-          const target = users.find(x => x.id === String(payload.to));
-          if (!target || !target.win) { log('warn', u.id, `emit target ${payload.to} is not on the object`); break; }
-          send(target, { type: 'ovice_message', payload: { ...out, to: String(payload.to) } });
-        } else {
-          users.filter(x => x.win && inRange(x) && (x !== u || $('echo').checked))
-            .forEach(x => send(x, { type: 'ovice_message', payload: out }));
-        }
+        const isEmit = type === 'ovice_emit_message';
+        const errors = validateSendPayload(payload, isEmit);
+        if (errors.length) { sendError(u, errors); break; }
+        if (isEmit && payload.to === u.id) { log('warn', u.id, 'emit to yourself is ignored by ovice'); break; }
+        if (!allowed(u)) break;
+        const receivers = isEmit
+          ? users.filter(x => x.id === payload.to && x.win)
+          : others(u);
+        if (isEmit && !receivers.length) log('warn', u.id, `emit target "${payload.to}" has no plugin iframe open; the message is lost`);
+        receivers.forEach(x => {
+          if (byteSize(payload.message) > MESSAGE_LIMIT) { sendError(x, 'Maximum allowed payload size is 2MB'); return; }
+          send(x, { type: 'ovice_message', payload }); // exactly what the sender posted
+        });
         break;
       }
-      case 'ovice_ready':
-        send(u, { type: 'ovice_confirmation' });
+
+      case 'ovice_change_user_state':
         break;
-      case 'ovice_ready_confirmed':
-        break;
-      default:
-        log('warn', u.id, `unknown message type "${type}"`);
     }
   }
   window.addEventListener('message', e => {
@@ -174,11 +281,23 @@
   });
 
   // ---------- UI ----------
+  function renderRate(u) {
+    const el = document.querySelector(`#user-${u.id} .rate`);
+    if (!el) return;
+    el.textContent = `sent ${u.rate.count}/${RATE_LIMIT} per min`;
+    el.classList.toggle('full', u.rate.count >= RATE_LIMIT);
+  }
+
+  // The plugin iframe only exists while the user is in range. Mounting does NOT send a
+  // subscribed/joined event: ovice fires it before the iframe is ready, so it is lost.
   function mount(u) {
     const box = $(`user-${u.id}`);
     const slot = box.querySelector('.slot');
+    clearTimeout(u.saveTimer);
     slot.innerHTML = '';
     u.win = null;
+    u.rate = { since: Date.now(), count: 0 };
+    renderRate(u);
     box.classList.toggle('gone', !inRange(u));
     if (!inRange(u)) {
       slot.innerHTML = `<div class="placeholder" style="width:${$('w').value}px;height:${$('h').value}px">out of range (iframe unloaded)</div>`;
@@ -187,24 +306,24 @@
     const iframe = document.createElement('iframe');
     iframe.width = $('w').value; iframe.height = $('h').value;
     iframe.src = $('url').value;
-    iframe.addEventListener('load', () => {
-      // Like ovice: the newcomer learns its own status, the others learn about the newcomer.
-      setTimeout(() => announce(u), 300);
-    }, { once: true });
     slot.appendChild(iframe);
     u.win = iframe.contentWindow;
   }
 
   function setStatus(u, status) {
-    const wasInRange = inRange(u);
+    const prev = u.status;
+    if (prev === status) return;
     u.status = status;
-    if (!inRange(u)) {
-      announce(u);         // tell everyone (incl. the leaving iframe) before unloading it
+    if (prev === 'unsubscribed') {
+      // Coming into range = fresh iframe (late joiner). Its subscribed/joined event is lost.
+      mount(u);
+      return;
+    }
+    if (prev === 'joined' && status !== 'joined') announce(u, 'ovice_participant_left');
+    if (status === 'joined') announce(u, 'ovice_participant_joined');
+    if (status === 'unsubscribed') {
+      announce(u, 'ovice_participant_unsubscribed');
       setTimeout(() => mount(u), 200);
-    } else if (!wasInRange) {
-      mount(u);            // fresh iframe = late joiner; announce happens on load
-    } else {
-      announce(u);
     }
   }
 
@@ -212,16 +331,17 @@
     const url = $('url').value.trim();
     const qs = new URLSearchParams({ url, users: $('count').value, type: $('type').value });
     history.replaceState(null, '', `?${qs}`);
+    users.forEach(u => clearTimeout(u.saveTimer));
     $('users').innerHTML = '';
     if (!url) { $('users').innerHTML = '<p class="muted">Enter the plugin URL (served over http(s), e.g. http://localhost:8080/) and press Apply.</p>'; return; }
     const n = Math.max(1, Math.min(12, Number($('count').value) || 4));
     const dynamic = $('type').value === 'dynamic';
     users = Array.from({ length: n }, (_, i) => ({
-      id: String(i + 1), name: `User ${i + 1}`,
+      n: i + 1, id: String(1001 + i), name: `User ${i + 1}`,
       status: i < 2 ? 'joined' : 'subscribed',
       isVisitor: i === n - 1 && n > 2,
       isHost: dynamic && i === 0,
-      win: null,
+      win: null, rate: { since: Date.now(), count: 0 },
     }));
     users.forEach(addBox);
   }
@@ -231,12 +351,13 @@
     box.className = 'user'; box.id = `user-${u.id}`;
     box.innerHTML = `
       <div class="bar">
-        <strong>${u.name}</strong>
+        <strong title="id ${u.id}">${u.name}</strong>
         ${u.isHost ? '<span title="owner of dynamic object">★ host</span>' : ''}
         ${u.late ? '<span class="muted" title="added after startup">(late)</span>' : ''}
         <label><input type="checkbox" class="visitor" ${u.isVisitor ? 'checked' : ''}/> visitor</label>
         <select class="status">${['subscribed', 'joined', 'left', 'unsubscribed'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
         <button class="reload" title="reload this iframe">⟳</button>
+        <span class="rate"></span>
       </div>
       <div class="slot"></div>`;
     box.querySelector('.status').addEventListener('change', e => setStatus(u, e.target.value));
@@ -247,23 +368,26 @@
   }
 
   // A brand-new user enters the object's range mid-session: its iframe loads from scratch
-  // (no prior state) and, once loaded, every iframe gets ovice_participant_<status>.
+  // (no prior state). Like the initial users and returning users, no subscribed/joined
+  // event is sent to anyone (see mount()); the others only learn about the newcomer from
+  // ovice_get_participants, and the newcomer must ask for the current state itself.
   function addUser() {
     if (!$('url').value.trim() || !users.length) { build(); return; }
     if (users.length >= MAX_USERS) { alert(`Max ${MAX_USERS} users`); return; }
-    const id = String(Math.max(...users.map(u => Number(u.id))) + 1);
+    const n = Math.max(...users.map(u => u.n)) + 1;
     const u = {
-      id, name: `User ${id}`, status: $('lateStatus').value,
-      isVisitor: $('lateVisitor').checked, isHost: false, late: true, win: null,
+      n, id: String(1000 + n), name: `User ${n}`, status: $('lateStatus').value,
+      isVisitor: $('lateVisitor').checked, isHost: false, late: true,
+      win: null, rate: { since: Date.now(), count: 0 },
     };
     users.push(u);
-    log('info', id, `late joiner added (${u.status}${u.isVisitor ? ', visitor' : ''})`);
+    log('info', u.id, `late joiner ${u.name} added (${u.status}${u.isVisitor ? ', visitor' : ''}); no participant event is sent`);
     addBox(u);
   }
 
   function renderStore() {
     $('data').value = JSON.stringify(store, null, 2);
-    $('dataInfo').textContent = `${byteSize(store)} bytes / 500KB`;
+    $('dataInfo').textContent = `${byteSize(store)} bytes / 50KB` + ($('prod').checked ? ' — ignored while "production" is ticked' : '');
   }
   $('pushData').addEventListener('click', () => {
     try { store = JSON.parse($('data').value || '{}'); } catch (e) { alert('Invalid JSON'); return; }
@@ -272,6 +396,7 @@
   });
   $('clearData').addEventListener('click', () => { store = {}; renderStore(); });
   $('clearLog').addEventListener('click', () => { $('log').innerHTML = ''; });
+  $('prod').addEventListener('change', renderStore);
   $('apply').addEventListener('click', build);
   $('addUser').addEventListener('click', addUser);
   $('url').addEventListener('keydown', e => { if (e.key === 'Enter') build(); });
