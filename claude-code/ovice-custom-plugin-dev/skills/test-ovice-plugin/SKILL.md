@@ -55,10 +55,15 @@ What it simulates (same rules as the real host):
   call `ovice_get_participants` on start and keep refreshing.
 - Status dropdown: `subscribed → joined` sends `joined`, `joined → left` sends `left`,
   `→ unsubscribed` sends (`left`,) `unsubscribed` and then unloads the iframe; back from
-  `unsubscribed` = fresh iframe (late joiner, no event). The user gets `isSelf: true`;
+  `unsubscribed` = fresh iframe (returning user, no event). The user gets `isSelf: true`;
   the others get the same payload with `isSelf: false`. Event payloads have **no
   `status`** and the language key is spelled `languge` (as in ovice). In
   `ovice_participants`, status is only `joined` or `subscribed`.
+- **+ Add late user** (header) → a brand-new user (next id, marked `(late)`) who was not
+  there at startup, as `subscribed` or `joined` and optionally a visitor (up to 20 users).
+  Its iframe loads mid-session with no prior state and, as at startup, **no**
+  participant event is sent to anyone: the newcomer must ask for state, and the others
+  only see it in `ovice_participants` (so they must keep polling).
 - **Data store**: *production* (default on) ignores `ovice_get_data` and
   `ovice_save_and_emit_data` entirely, as production ovice does. Untick it to simulate a
   dev build: 50 KB limit, `ovice_shared_data` to the others, `ovice_data_saved_success`
@@ -77,8 +82,12 @@ Drive the iframes (click inside them) and watch the log. Check at least:
    without waiting for any participant event or handshake.
 2. **Sync** – an action in User 1 shows up in User 2 (and only once in User 1). The log
    must have **no red ERROR lines**: any `ovice_errors` means ovice dropped the message.
-3. **Late joiner** – set User 3 to `unsubscribed`, act in User 1, set User 3 back to
-   `subscribed`: it must catch up to the current state.
+3. **Late joiner** – act in User 1 (and User 2) first, then press **+ Add late user**:
+   the new user must catch up to the current state, and the existing users must pick up
+   the newcomer through `ovice_get_participants` polling (no event arrives). Repeat with
+   the select on `joined`, and add two late users back to back to catch double-sync /
+   leader-election races. Also check a returning user: set User 3 to `unsubscribed`, act
+   in User 1, set User 3 back to `subscribed`.
 4. **Leader leaves** – set the leader (User 1) to `unsubscribed`: another user takes over
    and state is kept (and backed up to the data store if the plugin does that).
 5. **Roles** – repeat with `type=dynamic`; check host-only controls and visitor handling.

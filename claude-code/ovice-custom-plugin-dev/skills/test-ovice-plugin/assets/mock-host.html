@@ -62,6 +62,11 @@
   <label title="Production ovice ignores ovice_get_data / ovice_save_and_emit_data. Untick to simulate a development build."><input id="prod" type="checkbox" checked /> production (data store off)</label>
   <label title="Org owner allowed email in the custom plugin settings: own email only"><input id="email" type="checkbox" /> email</label>
   <button id="apply">Apply / reload</button>
+  <span title="Simulate a user who was not there at startup: a new iframe loads mid-session. Like ovice, no participant event is sent for it; the others only see it via ovice_get_participants.">
+    <button id="addUser">+ Add late user</button>
+    as <select id="lateStatus"><option>subscribed</option><option>joined</option></select>
+    <label><input id="lateVisitor" type="checkbox" /> visitor</label>
+  </span>
 </header>
 <main>
   <section id="users"></section>
@@ -104,7 +109,8 @@
   $('type').value = params.get('type') === 'dynamic' ? 'dynamic' : 'static';
   $('count').value = params.get('users') || 4;
 
-  let users = [];      // { id, name, status, isVisitor, isHost, iframe, win, rate }
+  const MAX_USERS = 20; // initial count is capped at 12; "+ Add late user" may go up to this
+  let users = [];      // { n, id, name, status, isVisitor, isHost, late, win, rate }
   let store = {};
   const byteSize = v => new TextEncoder().encode(JSON.stringify(v ?? null)).length;
   const isRecord = v => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -115,7 +121,7 @@
     if ($('hideParticipants').checked && isParticipant && kind !== 'err') return;
     const el = document.createElement('div');
     el.className = kind;
-    const arrow = { in: `user${who} → ovice`, out: `ovice → user${who}`, err: `ERROR user${who}`, warn: `WARN user${who}` }[kind];
+    const arrow = { in: `user${who} → ovice`, out: `ovice → user${who}`, err: `ERROR user${who}`, warn: `WARN user${who}`, info: `---- user${who}` }[kind];
     el.textContent = `${new Date().toLocaleTimeString()} ${arrow} ${typeof data === 'string' ? data : JSON.stringify(data)}`;
     $('log').appendChild(el);
     $('log').scrollTop = $('log').scrollHeight;
@@ -337,25 +343,46 @@
       isHost: dynamic && i === 0,
       win: null, rate: { since: Date.now(), count: 0 },
     }));
-    users.forEach(u => {
-      const box = document.createElement('div');
-      box.className = 'user'; box.id = `user-${u.id}`;
-      box.innerHTML = `
-        <div class="bar">
-          <strong title="id ${u.id}">${u.name}</strong>
-          ${u.isHost ? '<span title="owner of dynamic object">★ host</span>' : ''}
-          <label><input type="checkbox" class="visitor" ${u.isVisitor ? 'checked' : ''}/> visitor</label>
-          <select class="status">${['subscribed', 'joined', 'left', 'unsubscribed'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
-          <button class="reload" title="reload this iframe">⟳</button>
-          <span class="rate"></span>
-        </div>
-        <div class="slot"></div>`;
-      box.querySelector('.status').addEventListener('change', e => setStatus(u, e.target.value));
-      box.querySelector('.visitor').addEventListener('change', e => { u.isVisitor = e.target.checked; });
-      box.querySelector('.reload').addEventListener('click', () => mount(u));
-      $('users').appendChild(box);
-      mount(u);
-    });
+    users.forEach(addBox);
+  }
+
+  function addBox(u) {
+    const box = document.createElement('div');
+    box.className = 'user'; box.id = `user-${u.id}`;
+    box.innerHTML = `
+      <div class="bar">
+        <strong title="id ${u.id}">${u.name}</strong>
+        ${u.isHost ? '<span title="owner of dynamic object">★ host</span>' : ''}
+        ${u.late ? '<span class="muted" title="added after startup">(late)</span>' : ''}
+        <label><input type="checkbox" class="visitor" ${u.isVisitor ? 'checked' : ''}/> visitor</label>
+        <select class="status">${['subscribed', 'joined', 'left', 'unsubscribed'].map(s => `<option ${s === u.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
+        <button class="reload" title="reload this iframe">⟳</button>
+        <span class="rate"></span>
+      </div>
+      <div class="slot"></div>`;
+    box.querySelector('.status').addEventListener('change', e => setStatus(u, e.target.value));
+    box.querySelector('.visitor').addEventListener('change', e => { u.isVisitor = e.target.checked; });
+    box.querySelector('.reload').addEventListener('click', () => mount(u));
+    $('users').appendChild(box);
+    mount(u);
+  }
+
+  // A brand-new user enters the object's range mid-session: its iframe loads from scratch
+  // (no prior state). Like the initial users and returning users, no subscribed/joined
+  // event is sent to anyone (see mount()); the others only learn about the newcomer from
+  // ovice_get_participants, and the newcomer must ask for the current state itself.
+  function addUser() {
+    if (!$('url').value.trim() || !users.length) { build(); return; }
+    if (users.length >= MAX_USERS) { alert(`Max ${MAX_USERS} users`); return; }
+    const n = Math.max(...users.map(u => u.n)) + 1;
+    const u = {
+      n, id: String(1000 + n), name: `User ${n}`, status: $('lateStatus').value,
+      isVisitor: $('lateVisitor').checked, isHost: false, late: true,
+      win: null, rate: { since: Date.now(), count: 0 },
+    };
+    users.push(u);
+    log('info', u.id, `late joiner ${u.name} added (${u.status}${u.isVisitor ? ', visitor' : ''}); no participant event is sent`);
+    addBox(u);
   }
 
   function renderStore() {
@@ -371,6 +398,7 @@
   $('clearLog').addEventListener('click', () => { $('log').innerHTML = ''; });
   $('prod').addEventListener('change', renderStore);
   $('apply').addEventListener('click', build);
+  $('addUser').addEventListener('click', addUser);
   $('url').addEventListener('keydown', e => { if (e.key === 'Enter') build(); });
   renderStore();
   build();
