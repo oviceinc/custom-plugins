@@ -1,11 +1,14 @@
-import { MusicPlayerPage } from "./page/MusicPlayerPage";
 import { StyledEngineProvider } from "@mui/material/styles";
+import { MainPage } from "./page/MainPage";
+import { SoundtrackProvider } from "./context";
 
 function App() {
   return (
     <div className="App">
       <StyledEngineProvider injectFirst>
-        <MusicPlayerPage />
+        <SoundtrackProvider>
+          <MainPage />
+        </SoundtrackProvider>
       </StyledEngineProvider>
     </div>
   );
